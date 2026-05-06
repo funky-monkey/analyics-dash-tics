@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #7c6af7;
+  --color-brand-dark: #6d5be0;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    background-color: var(--color-gray-50);
+    color: var(--color-gray-900);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @reference tailwindcss;
+    @apply bg-violet-600 hover:bg-violet-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors;
+  }
+  .card {
+    @reference tailwindcss;
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+  }
+  .input {
+    @reference tailwindcss;
+    @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500;
+  }
+}
