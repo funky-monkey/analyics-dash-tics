@@ -16,7 +16,7 @@ import (
 type SitesHandler struct {
 	auth  service.AuthService
 	repos *repository.Repos
-	tmpl  *template.Template
+	tmpls map[string]*template.Template
 }
 
 // NewSitesHandler constructs a SitesHandler.
@@ -24,9 +24,10 @@ func NewSitesHandler(auth service.AuthService, repos *repository.Repos) *SitesHa
 	return &SitesHandler{auth: auth, repos: repos}
 }
 
-// SetTemplates wires the parsed template set. Called once after templates are loaded.
-func (h *SitesHandler) SetTemplates(tmpl *template.Template) {
-	h.tmpl = tmpl
+// SetTemplates wires the template map. Each key is a page name, each value is
+// a self-contained template set (base + page).
+func (h *SitesHandler) SetTemplates(tmpls map[string]*template.Template) {
+	h.tmpls = tmpls
 }
 
 type newSiteData struct {
@@ -105,12 +106,18 @@ func (h *SitesHandler) CreateSite(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SitesHandler) renderTemplate(w http.ResponseWriter, name string, data any) {
-	if h.tmpl == nil {
+	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")
 		return
 	}
+	t, ok := h.tmpls[name]
+	if !ok {
+		slog.Error("template not found", "name", name)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.tmpl.ExecuteTemplate(w, name, data); err != nil {
+	if err := t.ExecuteTemplate(w, "base.html", data); err != nil {
 		slog.Error("render template", "name", name, "error", err)
 	}
 }

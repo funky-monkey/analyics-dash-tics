@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -44,17 +47,17 @@ func main() {
 	repos := repository.New(pool)
 	authSvc := service.NewAuth(cfg.JWTSecret, cfg.JWTRefreshSecret)
 
-	tmpl, err := template.ParseGlob("templates/**/*.html")
+	tmpls, err := buildTemplateMap("templates/layout/base.html", "templates")
 	if err != nil {
 		slog.Error("templates", "error", err)
 		os.Exit(1)
 	}
 
 	authHandler := handler.NewAuthHandler(authSvc, repos, cfg.BaseURL)
-	authHandler.SetTemplates(tmpl)
+	authHandler.SetTemplates(tmpls)
 
 	sitesHandler := handler.NewSitesHandler(authSvc, repos)
-	sitesHandler.SetTemplates(tmpl)
+	sitesHandler.SetTemplates(tmpls)
 
 	r := chi.NewRouter()
 
@@ -126,4 +129,34 @@ func main() {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}
+}
+
+// buildTemplateMap builds a map from page basename → isolated template set.
+// Each entry contains base.html + the specific page file so that {{define}} blocks
+// from different pages never overwrite each other in a shared template set.
+func buildTemplateMap(basePath, pagesRoot string) (map[string]*template.Template, error) {
+	tmpls := make(map[string]*template.Template)
+
+	err := filepath.WalkDir(pagesRoot, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// Skip the layout directory — base.html is the layout, not a page.
+		if !d.IsDir() && strings.HasSuffix(path, ".html") && path != basePath {
+			name := filepath.Base(path)
+			t, err := template.ParseFiles(basePath, path)
+			if err != nil {
+				return fmt.Errorf("parse %s: %w", path, err)
+			}
+			tmpls[name] = t
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("buildTemplateMap: %w", err)
+	}
+	if len(tmpls) == 0 {
+		return nil, fmt.Errorf("buildTemplateMap: no page templates found under %s", pagesRoot)
+	}
+	return tmpls, nil
 }

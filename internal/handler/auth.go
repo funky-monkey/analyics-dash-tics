@@ -17,7 +17,7 @@ type AuthHandler struct {
 	auth    service.AuthService
 	repos   *repository.Repos
 	baseURL string
-	tmpl    *template.Template
+	tmpls   map[string]*template.Template
 }
 
 // NewAuthHandler constructs an AuthHandler. repos may be nil in tests that only test
@@ -26,9 +26,10 @@ func NewAuthHandler(auth service.AuthService, repos *repository.Repos, baseURL s
 	return &AuthHandler{auth: auth, repos: repos, baseURL: baseURL}
 }
 
-// SetTemplates wires the parsed template set. Called once after templates are loaded in main.
-func (h *AuthHandler) SetTemplates(tmpl *template.Template) {
-	h.tmpl = tmpl
+// SetTemplates wires the template map. Each key is a page name (e.g. "login.html"),
+// each value is a self-contained template set (base + page) so defines don't bleed across pages.
+func (h *AuthHandler) SetTemplates(tmpls map[string]*template.Template) {
+	h.tmpls = tmpls
 }
 
 type authPageData struct {
@@ -236,24 +237,24 @@ func (h *AuthHandler) renderAuth(w http.ResponseWriter, r *http.Request, name st
 			data.CSRFToken = c.Value
 		}
 	}
-	if h.tmpl == nil {
-		w.Header().Set("Content-Type", "text/html")
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.tmpl.ExecuteTemplate(w, name, data); err != nil {
-		slog.Error("render template", "name", name, "error", err)
-	}
+	h.renderTemplate(w, name, data)
 }
 
-// renderTemplate is used for templates with arbitrary data (password reset etc.).
+// renderTemplate executes the named page template. Each page has its own isolated
+// template set (base + page) to prevent define blocks bleeding across pages.
 func (h *AuthHandler) renderTemplate(w http.ResponseWriter, name string, data any) {
-	if h.tmpl == nil {
+	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")
 		return
 	}
+	t, ok := h.tmpls[name]
+	if !ok {
+		slog.Error("template not found", "name", name)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.tmpl.ExecuteTemplate(w, name, data); err != nil {
+	if err := t.ExecuteTemplate(w, "base.html", data); err != nil {
 		slog.Error("render template", "name", name, "error", err)
 	}
 }
