@@ -6,7 +6,7 @@
 
 **Architecture:** Single Go binary (`net/http` + `chi` router). All config from env vars loaded once at startup into a typed `Config` struct. `pgx/v5` pool for TimescaleDB. JWT access tokens (15 min) stored in HTTP-only cookies with 7-day refresh tokens. `bcrypt` (cost 12) for passwords. Security headers, CORS, CSRF, and per-IP rate limiting on every route via middleware.
 
-**Tech Stack:** Go 1.22+, `go-chi/chi/v5`, `jackc/pgx/v5`, `golang-jwt/jwt/v5`, `golang.org/x/crypto/bcrypt`, `go-playground/validator/v10`, `patrickmn/go-cache`, `golang.org/x/time/rate`, `stretchr/testify`
+**Tech Stack:** Go 1.22+, `go-chi/chi/v5`, `jackc/pgx/v5`, `golang-jwt/jwt/v5`, `golang.org/x/crypto/bcrypt`, `go-playground/validator/v10`, `patrickmn/go-cache`, `golang.org/x/time/rate`, `stretchr/testify` (TDD), `onsi/ginkgo/v2` + `onsi/gomega` (BDD for handlers)
 
 > **Note on module path:** This plan uses `github.com/sidneydekoning/analytics`. Update `go.mod` to match your actual GitHub username/org.
 
@@ -202,6 +202,9 @@ go get github.com/patrickmn/go-cache
 go get golang.org/x/time/rate
 go get github.com/stretchr/testify
 go get github.com/microcosm-cc/bluemonday
+go get github.com/onsi/ginkgo/v2
+go get github.com/onsi/gomega
+go install github.com/onsi/ginkgo/v2/ginkgo@latest
 go mod tidy
 ```
 

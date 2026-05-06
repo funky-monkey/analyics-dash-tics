@@ -79,6 +79,59 @@ All Go code must follow [Effective Go](https://go.dev/doc/effective_go) without 
 - Prefer buffered channels when the producer must not block.
 - Run `go test -race ./...` in CI — zero race conditions tolerated.
 
+### Testing Strategy — TDD + BDD
+
+**TDD** (Test-Driven Development) is used at the unit and service layer:
+- Write the failing test first using Go's `testing` package + `testify/assert` + `testify/require`.
+- Table-driven tests for functions with multiple input scenarios.
+- Run the test, verify it fails for the right reason, implement minimally to pass.
+- Integration tests for repositories use a real TimescaleDB instance (never mock the DB).
+- `go test -race ./...` in CI — zero race conditions tolerated.
+
+**BDD** (Behaviour-Driven Development) is used at the handler and acceptance layer:
+- Framework: **Ginkgo v2** + **Gomega** — the Go community standard for BDD.
+- BDD specs live alongside the code they test: `internal/handler/auth_test.go` uses Ginkgo.
+- Use `Describe` / `Context` / `It` blocks that read like acceptance criteria.
+- `BeforeEach` for shared setup, `AfterEach` for teardown.
+- `Expect(...)` with Gomega matchers (`To(Equal(...))`, `To(BeTrue())`, `To(HaveOccurred())`).
+- Run with: `ginkgo ./...` or `go test ./...` (Ginkgo integrates with standard test runner).
+
+**Layer → test style mapping:**
+| Layer | Style | Rationale |
+|---|---|---|
+| `service/` | TDD (testify) | Pure functions, fast, table-driven |
+| `repository/` | TDD integration (testify) | Real DB, verifies SQL correctness |
+| `handler/` | BDD (Ginkgo) | Reads like "given/when/then" user behaviour |
+| `middleware/` | TDD (testify) | Unit test each middleware in isolation |
+
+**BDD example:**
+```go
+Describe("POST /login", func() {
+    Context("with valid credentials", func() {
+        It("sets an access_token cookie and redirects to /dashboard", func() {
+            // ...
+            Expect(resp.StatusCode).To(Equal(http.StatusSeeOther))
+            Expect(resp.Header.Get("Location")).To(Equal("/dashboard"))
+        })
+    })
+    Context("with wrong password", func() {
+        It("returns 401 and renders the login page with an error", func() {
+            // ...
+            Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+        })
+    })
+})
+```
+
+**Install:**
+```bash
+go get github.com/onsi/ginkgo/v2
+go get github.com/onsi/gomega
+go install github.com/onsi/ginkgo/v2/ginkgo
+```
+
+Bootstrap a BDD test file with: `ginkgo bootstrap` (in a package dir).
+
 ### Comments & Documentation
 - Every exported type, function, and method has a doc comment.
 - Doc comment starts with the name: `// SiteService handles business logic for sites.`
