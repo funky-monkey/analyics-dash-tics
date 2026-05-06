@@ -7,6 +7,7 @@ type Repos struct {
 	Users  UserRepository
 	Sites  SiteRepository
 	Events EventRepository
+	Stats  StatsRepository
 }
 
 // New creates a Repos with all pg implementations wired up.
@@ -15,5 +16,6 @@ func New(pool *pgxpool.Pool) *Repos {
 		Users:  &pgUserRepository{pool: pool},
 		Sites:  &pgSiteRepository{pool: pool},
 		Events: &pgEventRepository{pool: pool},
+		Stats:  &pgStatsRepository{pool: pool},
 	}
 }

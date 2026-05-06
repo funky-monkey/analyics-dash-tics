@@ -41,3 +41,43 @@ type CollectRequest struct {
 	UTMCampaign string            `json:"utm_campaign"`
 	Props       map[string]string `json:"props"`
 }
+
+// StatsSummary holds the aggregate KPI numbers for a dashboard period.
+type StatsSummary struct {
+	Pageviews   int64
+	Visitors    int64
+	Sessions    int64
+	Bounces     int64
+	BounceRate  float64 // percentage 0-100
+	AvgDuration int64   // milliseconds
+}
+
+// PageStat holds per-URL traffic data.
+type PageStat struct {
+	URL         string
+	Pageviews   int64
+	Sessions    int64
+	AvgDuration float64
+}
+
+// SourceStat holds per-channel/referrer traffic data.
+type SourceStat struct {
+	Channel   string
+	Referrer  string
+	Sessions  int64
+	Pageviews int64
+}
+
+// AudienceStat holds a dimension breakdown row (country, device, browser, etc.).
+type AudienceStat struct {
+	Dimension string
+	Sessions  int64
+	Share     float64 // percentage 0-100
+}
+
+// TimePoint is a single data point for time-series charts.
+type TimePoint struct {
+	Time      time.Time
+	Pageviews int64
+	Visitors  int64
+}
