@@ -1,5 +1,5 @@
 # Makefile
-.PHONY: dev test lint build
+.PHONY: dev test lint build tidy tailwind
 
 # Load .env if it exists
 ifneq (,$(wildcard .env))
