@@ -81,3 +81,30 @@ type TimePoint struct {
 	Pageviews int64
 	Visitors  int64
 }
+
+// CMSPage represents a blog post or generic page created via the admin CMS.
+type CMSPage struct {
+	ID              string
+	LayoutID        string
+	AuthorID        string
+	Title           string
+	Slug            string
+	Type            string // "blog" or "page"
+	ContentHTML     string // bluemonday-sanitised Trix output
+	Excerpt         string
+	CoverImageURL   string
+	MetaTitle       string
+	MetaDescription string
+	Status          string // "draft" or "published"
+	PublishedAt     *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+// CMSLayout is a named template file that a CMS page uses.
+type CMSLayout struct {
+	ID           string
+	Name         string
+	TemplateFile string
+	Description  string
+}
