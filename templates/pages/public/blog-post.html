@@ -1,0 +1,13 @@
+{{template "base.html" .}}
+{{define "title"}}{{defaultStr .Page.MetaTitle .Page.Title}}{{end}}
+{{define "content"}}
+<article class="max-w-3xl mx-auto px-4 py-16">
+  <header class="mb-10">
+    {{if .Page.PublishedAt}}<time class="text-xs text-gray-400 block mb-3">{{.Page.PublishedAt.Format "January 2, 2006"}}</time>{{end}}
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">{{.Page.Title}}</h1>
+    {{if .Page.Excerpt}}<p class="text-lg text-gray-500">{{.Page.Excerpt}}</p>{{end}}
+  </header>
+  {{if .Page.CoverImageURL}}<img src="{{.Page.CoverImageURL}}" alt="{{.Page.Title}}" class="w-full rounded-xl mb-10">{{end}}
+  <div class="text-gray-700 leading-relaxed">{{safeHTML .Page.ContentHTML}}</div>
+</article>
+{{end}}

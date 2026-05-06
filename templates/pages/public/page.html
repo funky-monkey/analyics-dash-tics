@@ -1,0 +1,8 @@
+{{template "base.html" .}}
+{{define "title"}}{{defaultStr .Page.MetaTitle .Page.Title}}{{end}}
+{{define "content"}}
+<div class="max-w-3xl mx-auto px-4 py-16">
+  <h1 class="text-3xl font-bold text-gray-900 mb-8">{{.Page.Title}}</h1>
+  <div class="text-gray-700 leading-relaxed">{{safeHTML .Page.ContentHTML}}</div>
+</div>
+{{end}}
