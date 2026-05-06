@@ -1,0 +1,39 @@
+{{template "admin.html" .}}
+{{define "title"}}{{if .User.ID}}Edit user{{else}}New user{{end}} — Admin{{end}}
+{{define "content"}}
+<h1 class="text-2xl font-bold text-gray-900 mb-8">{{if .User.ID}}Edit user{{else}}Create user{{end}}</h1>
+{{if .Error}}<div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{{.Error}}</div>{{end}}
+<div class="bg-white rounded-xl border border-gray-100 p-6 max-w-md">
+  <form method="POST" action="{{if .User.ID}}/admin/users/{{.User.ID}}{{else}}/admin/users/new{{end}}" class="space-y-4">
+    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+      <input type="email" name="email" value="{{.User.Email}}" required class="input">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+      <input type="text" name="name" value="{{.User.Name}}" required class="input">
+    </div>
+    {{if not .User.ID}}
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+      <input type="password" name="password" minlength="12" required class="input">
+    </div>
+    {{end}}
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+      <select name="role" class="input">
+        <option value="user" {{if eq .User.Role "user"}}selected{{end}}>User</option>
+        <option value="admin" {{if eq .User.Role "admin"}}selected{{end}}>Admin</option>
+      </select>
+    </div>
+    {{if .User.ID}}
+    <div class="flex items-center gap-2">
+      <input type="checkbox" name="is_active" id="is_active" value="true" {{if .User.IsActive}}checked{{end}}>
+      <label for="is_active" class="text-sm text-gray-700">Active</label>
+    </div>
+    {{end}}
+    <button type="submit" class="btn-primary">{{if .User.ID}}Save changes{{else}}Create user{{end}}</button>
+  </form>
+</div>
+{{end}}

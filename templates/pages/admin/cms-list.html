@@ -1,0 +1,38 @@
+{{template "admin.html" .}}
+{{define "title"}}CMS — Admin{{end}}
+{{define "content"}}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Pages & blog posts</h1>
+  <a href="/admin/cms/new" class="btn-primary">+ New page</a>
+</div>
+<div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50"><tr class="text-xs text-gray-400 border-b border-gray-100">
+      <th class="text-left px-4 py-3 font-medium">Title</th>
+      <th class="text-left px-4 py-3 font-medium">Type</th>
+      <th class="text-left px-4 py-3 font-medium">Status</th>
+      <th class="text-left px-4 py-3 font-medium">Published</th>
+      <th class="px-4 py-3"></th>
+    </tr></thead>
+    <tbody>
+      {{range .Pages}}
+      <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+        <td class="px-4 py-3 font-medium text-gray-900">{{.Title}}</td>
+        <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-600">{{.Type}}</span></td>
+        <td class="px-4 py-3">{{if eq .Status "published"}}<span class="text-green-600 text-xs font-medium">Published</span>{{else}}<span class="text-gray-400 text-xs">Draft</span>{{end}}</td>
+        <td class="px-4 py-3 text-gray-400 text-xs">{{if .PublishedAt}}{{.PublishedAt.Format "2006-01-02"}}{{else}}—{{end}}</td>
+        <td class="px-4 py-3 flex gap-3">
+          <a href="/admin/cms/{{.ID}}/edit" class="text-xs text-violet-600 hover:underline">Edit</a>
+          <form method="POST" action="/admin/cms/{{.ID}}/publish" style="display:inline">
+            <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+            <button type="submit" class="text-xs text-gray-400 hover:text-gray-700">{{if eq .Status "published"}}Unpublish{{else}}Publish{{end}}</button>
+          </form>
+        </td>
+      </tr>
+      {{else}}
+      <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400 text-sm">No pages yet.</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
