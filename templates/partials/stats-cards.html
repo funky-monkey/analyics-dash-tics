@@ -1,0 +1,20 @@
+{{define "stats-cards"}}
+<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-gray-100 p-5">
+    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Visitors</p>
+    <p class="text-2xl font-bold text-gray-900">{{formatNumber .Summary.Visitors}}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 p-5">
+    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Pageviews</p>
+    <p class="text-2xl font-bold text-gray-900">{{formatNumber .Summary.Pageviews}}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 p-5">
+    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Bounce rate</p>
+    <p class="text-2xl font-bold text-gray-900">{{printf "%.1f" .Summary.BounceRate}}%</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 p-5">
+    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Avg. duration</p>
+    <p class="text-2xl font-bold text-gray-900">{{formatDuration .Summary.AvgDuration}}</p>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,27 @@
+{{define "chart-line"}}
+<div class="bg-white rounded-xl border border-gray-100 p-5 mb-6">
+  <div id="chart-timeseries" class="w-full" style="height:200px"></div>
+</div>
+<script>
+(function() {
+  var times = {{.ChartTimes}};
+  var pageviews = {{.ChartPageviews}};
+  var el = document.getElementById('chart-timeseries');
+  if (typeof uPlot !== 'undefined' && times && times.length > 0 && el) {
+    var opts = {
+      width: el.offsetWidth || 800,
+      height: 200,
+      series: [
+        {},
+        { label: "Pageviews", stroke: "#7c6af7", fill: "rgba(124,106,247,0.08)", width: 2 }
+      ],
+      axes: [
+        { stroke: "#d1d5db" },
+        { stroke: "#d1d5db" }
+      ],
+    };
+    new uPlot(opts, [times, pageviews], el);
+  }
+})();
+</script>
+{{end}}

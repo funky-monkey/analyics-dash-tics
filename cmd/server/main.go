@@ -63,6 +63,9 @@ func main() {
 	sitesHandler := handler.NewSitesHandler(authSvc, repos)
 	sitesHandler.SetTemplates(tmpls)
 
+	dashHandler := handler.NewDashboardHandler(authSvc, repos)
+	dashHandler.SetTemplates(tmpls)
+
 	r := chi.NewRouter()
 
 	// Global middleware — order matters: logger and security headers wrap everything.
@@ -99,14 +102,15 @@ func main() {
 	jwtAuth := middleware.JWTAuth(authSvc)
 
 	r.With(jwtAuth).Group(func(r chi.Router) {
-		r.Get("/dashboard", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintln(w, "dashboard — coming in Plan 3")
-		})
+		r.Get("/dashboard", dashHandler.Aggregate)
 		r.Get("/account/sites/new", sitesHandler.NewSitePage)
 		r.Post("/account/sites/new", sitesHandler.CreateSite)
-		r.Get("/sites/{siteID}/overview", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "site overview %s — coming in Plan 3", chi.URLParam(r, "siteID"))
-		})
+		r.Get("/sites/{siteID}/overview", dashHandler.Overview)
+		r.Get("/sites/{siteID}/pages", dashHandler.Pages)
+		r.Get("/sites/{siteID}/sources", dashHandler.Sources)
+		r.Get("/sites/{siteID}/audience", dashHandler.Audience)
+		r.Get("/sites/{siteID}/events", dashHandler.Events)
+		r.Get("/sites/{siteID}/funnels", dashHandler.Funnels)
 	})
 
 	// Admin routes — role=admin required
@@ -133,24 +137,58 @@ func main() {
 }
 
 // buildTemplateMap builds a map from page basename → isolated template set.
-// Each entry contains base.html + the specific page file so that {{define}} blocks
-// from different pages never overwrite each other in a shared template set.
+// Each entry contains the appropriate layout + partials + the specific page file
+// so that {{define}} blocks from different pages never overwrite each other.
+// Dashboard pages use templates/layout/dashboard.html; all others use basePath.
 func buildTemplateMap(basePath, pagesRoot string) (map[string]*template.Template, error) {
+	funcs := template.FuncMap{
+		"formatNumber":   handler.FormatNumber,
+		"formatDuration": handler.FormatDuration,
+		"slice": func(s string, i, j int) string {
+			if i >= len(s) {
+				return ""
+			}
+			if j > len(s) {
+				j = len(s)
+			}
+			return s[i:j]
+		},
+	}
+
+	partials, err := filepath.Glob("templates/partials/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("buildTemplateMap: glob partials: %w", err)
+	}
+
 	tmpls := make(map[string]*template.Template)
 
-	err := filepath.WalkDir(pagesRoot, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(pagesRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		// Skip the layout directory — base.html is the layout, not a page.
-		if !d.IsDir() && strings.HasSuffix(path, ".html") && path != basePath {
-			name := filepath.Base(path)
-			t, err := template.ParseFiles(basePath, path)
-			if err != nil {
-				return fmt.Errorf("parse %s: %w", path, err)
-			}
-			tmpls[name] = t
+		if d.IsDir() || !strings.HasSuffix(path, ".html") {
+			return nil
 		}
+		// Skip layout and partials — not standalone pages
+		if strings.Contains(path, "/layout/") || strings.Contains(path, "/partials/") {
+			return nil
+		}
+
+		// Dashboard pages use the dashboard layout
+		layoutPath := basePath
+		if strings.Contains(path, "/dashboard/") {
+			layoutPath = "templates/layout/dashboard.html"
+		}
+
+		files := []string{layoutPath}
+		files = append(files, partials...)
+		files = append(files, path)
+
+		t, err := template.New(filepath.Base(layoutPath)).Funcs(funcs).ParseFiles(files...)
+		if err != nil {
+			return fmt.Errorf("parse %s: %w", path, err)
+		}
+		tmpls[filepath.Base(path)] = t
 		return nil
 	})
 	if err != nil {

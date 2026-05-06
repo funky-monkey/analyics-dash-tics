@@ -1,0 +1,27 @@
+{{template "dashboard.html" .}}
+{{define "title"}}{{.SiteDomain}} — Pages{{end}}
+{{define "content"}}
+<h2 class="text-lg font-semibold text-gray-900 mb-4">Top pages</h2>
+<div class="bg-white rounded-xl border border-gray-100 p-5">
+  {{if .Pages}}
+  <table class="w-full text-sm">
+    <thead><tr class="text-xs text-gray-400 border-b border-gray-100">
+      <th class="text-left pb-3 font-medium">URL</th>
+      <th class="text-right pb-3 font-medium">Pageviews</th>
+      <th class="text-right pb-3 font-medium">Sessions</th>
+    </tr></thead>
+    <tbody>
+      {{range .Pages}}
+      <tr class="border-b border-gray-50 last:border-0">
+        <td class="py-3 text-gray-600 font-mono text-xs">{{.URL}}</td>
+        <td class="py-3 text-right font-medium">{{.Pageviews}}</td>
+        <td class="py-3 text-right text-gray-500">{{.Sessions}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="text-sm text-gray-400 text-center py-12">No page data for this period.</p>
+  {{end}}
+</div>
+{{end}}

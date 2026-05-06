@@ -1,0 +1,25 @@
+{{template "dashboard.html" .}}
+{{define "title"}}All sites — Analytics{{end}}
+{{define "content"}}
+<h1 class="text-xl font-bold text-gray-900 mb-6">Your sites</h1>
+{{if .Sites}}
+<div class="grid grid-cols-3 gap-4">
+  {{range .Sites}}
+  <a href="/sites/{{.ID}}/overview" class="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-sm transition-shadow group">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
+        <span class="text-violet-600 text-xs font-bold">{{slice .Domain 0 1}}</span>
+      </div>
+      <span class="font-medium text-gray-900 group-hover:text-violet-600 transition-colors">{{.Domain}}</span>
+    </div>
+    <p class="text-xs text-gray-400">{{.Name}}</p>
+  </a>
+  {{end}}
+</div>
+{{else}}
+<div class="text-center py-16">
+  <p class="text-gray-400 mb-4">No sites yet.</p>
+  <a href="/account/sites/new" class="btn-primary">Add your first site</a>
+</div>
+{{end}}
+{{end}}

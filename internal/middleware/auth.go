@@ -67,6 +67,18 @@ func RoleFromContext(ctx context.Context) string {
 	return role
 }
 
+// WithUserID returns a new context with the given user ID set.
+// Used in tests to inject authentication context.
+func WithUserID(ctx context.Context, userID string) context.Context {
+	return context.WithValue(ctx, ContextKeyUserID, userID)
+}
+
+// WithRole returns a new context with the given role set.
+// Used in tests to inject authentication context.
+func WithRole(ctx context.Context, role string) context.Context {
+	return context.WithValue(ctx, ContextKeyRole, role)
+}
+
 // tokenFromRequest extracts the JWT from the HTTP-only auth cookie (browser)
 // or the Authorization: Bearer header (Stats API).
 func tokenFromRequest(r *http.Request) string {

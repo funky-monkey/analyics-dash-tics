@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{block "title" .}}Dashboard — Analytics{{end}}</title>
+  <link rel="stylesheet" href="/static/css/output.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased flex">
+
+  <aside class="w-14 bg-gray-900 min-h-screen flex flex-col items-center py-4 gap-3 shrink-0">
+    <a href="/dashboard" class="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center mb-2">
+      <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z"/>
+      </svg>
+    </a>
+    <a href="{{.SiteBaseURL}}/overview" title="Overview"
+       class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors {{if eq .ActiveNav "overview"}}bg-gray-700 text-white{{end}}">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    </a>
+    <a href="{{.SiteBaseURL}}/pages" title="Pages"
+       class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors {{if eq .ActiveNav "pages"}}bg-gray-700 text-white{{end}}">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    </a>
+    <a href="{{.SiteBaseURL}}/sources" title="Sources"
+       class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors {{if eq .ActiveNav "sources"}}bg-gray-700 text-white{{end}}">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    </a>
+    <a href="{{.SiteBaseURL}}/audience" title="Audience"
+       class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors {{if eq .ActiveNav "audience"}}bg-gray-700 text-white{{end}}">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </a>
+    <a href="{{.SiteBaseURL}}/events" title="Events"
+       class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors {{if eq .ActiveNav "events"}}bg-gray-700 text-white{{end}}">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    </a>
+    <a href="{{.SiteBaseURL}}/funnels" title="Funnels"
+       class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors {{if eq .ActiveNav "funnels"}}bg-gray-700 text-white{{end}}">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+    </a>
+    <div class="flex-1"></div>
+    <a href="{{.SiteBaseURL}}/settings" title="Settings"
+       class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </a>
+  </aside>
+
+  <div class="flex-1 flex flex-col min-h-screen">
+    <header class="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between">
+      <span class="text-sm font-medium text-gray-700 flex items-center gap-2">
+        <span class="w-2 h-2 bg-green-400 rounded-full inline-block"></span>
+        {{.SiteDomain}}
+      </span>
+      <div class="flex items-center gap-1">
+        {{range .AvailablePeriods}}
+        <a href="?period={{.Value}}"
+           class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors {{if eq .Value $.Period}}bg-violet-600 text-white{{else}}text-gray-500 hover:bg-gray-100{{end}}">
+          {{.Label}}
+        </a>
+        {{end}}
+      </div>
+    </header>
+    <main class="flex-1 p-6">
+      {{block "content" .}}{{end}}
+    </main>
+  </div>
+</body>
+</html>

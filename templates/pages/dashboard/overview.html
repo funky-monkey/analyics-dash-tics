@@ -1,0 +1,53 @@
+{{template "dashboard.html" .}}
+{{define "title"}}{{.SiteDomain}} — Overview{{end}}
+{{define "content"}}
+{{template "stats-cards" .}}
+{{template "chart-line" .}}
+<div class="grid grid-cols-2 gap-4">
+  <div class="bg-white rounded-xl border border-gray-100 p-5">
+    <h3 class="text-sm font-semibold text-gray-700 mb-4">Top pages</h3>
+    {{if .TopPages}}
+    <table class="w-full text-sm">
+      <thead><tr class="text-xs text-gray-400 border-b border-gray-50">
+        <th class="text-left pb-2 font-medium">Page</th>
+        <th class="text-right pb-2 font-medium">Views</th>
+      </tr></thead>
+      <tbody>
+        {{range .TopPages}}
+        <tr class="border-b border-gray-50 last:border-0">
+          <td class="py-2 text-gray-600 text-xs font-mono truncate max-w-xs">{{.URL}}</td>
+          <td class="py-2 text-right font-medium text-gray-900">{{.Pageviews}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="text-sm text-gray-400 text-center py-8">No data yet — add the tracking script to your site.</p>
+    {{end}}
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 p-5">
+    <h3 class="text-sm font-semibold text-gray-700 mb-4">Traffic sources</h3>
+    {{if .TopSources}}
+    <table class="w-full text-sm">
+      <thead><tr class="text-xs text-gray-400 border-b border-gray-50">
+        <th class="text-left pb-2 font-medium">Source</th>
+        <th class="text-right pb-2 font-medium">Sessions</th>
+      </tr></thead>
+      <tbody>
+        {{range .TopSources}}
+        <tr class="border-b border-gray-50 last:border-0">
+          <td class="py-2">
+            <span class="inline-block px-2 py-0.5 text-xs rounded-full bg-violet-50 text-violet-700 mr-1">{{.Channel}}</span>
+            <span class="text-gray-500 text-xs">{{.Referrer}}</span>
+          </td>
+          <td class="py-2 text-right font-medium text-gray-900">{{.Sessions}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="text-sm text-gray-400 text-center py-8">No sources tracked yet.</p>
+    {{end}}
+  </div>
+</div>
+{{end}}
