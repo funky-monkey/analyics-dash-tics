@@ -135,7 +135,7 @@ JWT_REFRESH_SECRET=replace-with-different-32-byte-random-hex
 
 # Server
 BASE_URL=http://localhost:8080
-PORT=8080
+PORT=8090
 
 # CORS (comma-separated, for Stats API)
 ALLOWED_ORIGINS=http://localhost:3000
@@ -3078,7 +3078,7 @@ cp .env.example .env
 # Expected: {"level":"INFO","msg":"server starting","port":8080,"env":"development"}
 
 # In another terminal:
-curl -i http://localhost:8080/login
+curl -i http://localhost:8090/login
 # Expected: 200 OK with HTML login page
 ```
 
