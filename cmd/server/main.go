@@ -46,6 +46,10 @@ func main() {
 
 	repos := repository.New(pool)
 	authSvc := service.NewAuth(cfg.JWTSecret, cfg.JWTRefreshSecret)
+	geo := service.NewGeoLocator(cfg.MaxMindDBPath)
+	fp := service.NewFingerprinter(string(cfg.JWTSecret))
+	collectSvc := service.NewCollectService(geo, fp)
+	collectHandler := handler.NewCollectHandler(collectSvc, repos)
 
 	tmpls, err := buildTemplateMap("templates/layout/base.html", "templates")
 	if err != nil {
@@ -89,10 +93,7 @@ func main() {
 
 	// Tracking endpoint — no JWT, site token auth only, tighter rate limit
 	collectLimiter := middleware.RateLimiter(100.0/60.0, 20)
-	r.With(collectLimiter).Post("/collect", func(w http.ResponseWriter, r *http.Request) {
-		// Placeholder — implemented in Plan 2 (Tracking Pipeline)
-		w.WriteHeader(http.StatusAccepted)
-	})
+	r.With(collectLimiter).Post("/collect", collectHandler.Collect)
 
 	// Authenticated routes
 	jwtAuth := middleware.JWTAuth(authSvc)
