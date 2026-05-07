@@ -2,8 +2,7 @@
 {{define "title"}}{{.SiteDomain}} — Overview{{end}}
 {{define "content"}}
 {{if not .HasData}}
-<div class="rounded-xl border p-5 mb-6 flex gap-4" style="background:#faf5ff;border-color:#e9d5ff"
-     x-data="{ open: true }" x-show="open">
+<div id="no-data-banner" class="rounded-xl border p-5 mb-6 flex gap-4" style="background:#faf5ff;border-color:#e9d5ff">
   <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style="background:#ede9fe">
     <svg class="w-4 h-4" style="color:#7c3aed" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -21,7 +20,7 @@
     </div>
     <a href="/sites/{{.SiteID}}/setup" class="inline-block mt-3 text-xs font-medium" style="color:#7c3aed">View setup instructions →</a>
   </div>
-  <button @click="open = false" class="flex-shrink-0 self-start p-1 rounded" style="color:#a78bfa">
+  <button onclick="document.getElementById('no-data-banner').style.display='none'" class="flex-shrink-0 self-start p-1 rounded" style="color:#a78bfa">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
   </button>
 </div>

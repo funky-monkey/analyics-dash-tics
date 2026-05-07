@@ -4,9 +4,6 @@
 <link rel="stylesheet" type="text/css" href="/static/vendor/trix.min.css">
 <script type="text/javascript" src="/static/vendor/trix.min.js"></script>
 <style>
-  /* x-cloak: hide Alpine-managed elements before Alpine boots */
-  [x-cloak] { display: none !important; }
-
   /* Tailwind's base reset is opted out for trix elements via input.css.
      These rules are purely cosmetic — applied on top of Trix's own styles. */
   trix-editor {
@@ -71,10 +68,7 @@
   </div>
 
   {{/* ── Settings sidebar ── */}}
-  <div class="w-72 shrink-0 space-y-4 sticky top-20" x-data="{
-    scheduleMode: false,
-    scheduledAt: '{{if .Page.PublishedAt}}{{.Page.PublishedAt.Format "2006-01-02T15:04"}}{{end}}'
-  }">
+  <div class="w-72 shrink-0 space-y-4 sticky top-20">
 
     {{/* Publish panel */}}
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -91,12 +85,14 @@
         {{/* Schedule toggle */}}
         <div>
           <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" x-model="scheduleMode" class="rounded border-gray-300 text-violet-600 focus:ring-violet-500">
+            <input type="checkbox" id="schedule-toggle" onchange="toggleSchedule(this)"
+                   {{if and .Page.PublishedAt (ne .Page.Status "published")}}checked{{end}}
+                   class="rounded border-gray-300 text-violet-600 focus:ring-violet-500">
             <span class="text-sm text-gray-700">Schedule for later</span>
           </label>
-          <div x-show="scheduleMode" style="display:none" class="mt-2">
-            <input type="datetime-local" name="scheduled_at"
-                   x-model="scheduledAt"
+          <div id="schedule-section" style="display:{{if and .Page.PublishedAt (ne .Page.Status "published")}}block{{else}}none{{end}}" class="mt-2">
+            <input type="datetime-local" name="scheduled_at" id="scheduled-at"
+                   value="{{if .Page.PublishedAt}}{{.Page.PublishedAt.Format "2006-01-02T15:04"}}{{end}}"
                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500">
             <p class="text-xs text-gray-400 mt-1">Post will go live at this time.</p>
           </div>
@@ -104,13 +100,13 @@
 
         {{/* Action buttons */}}
         <div class="flex flex-col gap-2 pt-1">
-          <button type="button"
-                  @click="scheduleMode ? setAction('schedule') : setAction('publish'); document.getElementById('cms-form').requestSubmit()"
+          <button type="button" id="publish-btn"
+                  onclick="submitAs(document.getElementById('schedule-toggle').checked ? 'schedule' : 'publish')"
                   class="w-full py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors">
-            <span x-text="scheduleMode ? 'Schedule' : 'Publish now'">Publish now</span>
+            {{if and .Page.PublishedAt (ne .Page.Status "published")}}Schedule{{else}}Publish now{{end}}
           </button>
           <button type="button"
-                  @click="setAction('draft'); document.getElementById('cms-form').requestSubmit()"
+                  onclick="submitAs('draft')"
                   class="w-full py-2 border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-lg transition-colors">
             Save draft
           </button>
@@ -215,31 +211,40 @@
     document.getElementById('content_html_input').value = trix ? trix.innerHTML : '';
   });
 
-  // Set the form action (draft / publish / schedule)
-  function setAction(val) {
-    document.getElementById('form_action').value = val;
+  // Submit form with a given action value (draft | publish | schedule)
+  function submitAs(action) {
+    document.getElementById('form_action').value = action;
+    var form = document.getElementById('cms-form');
+    // Sync Trix content before submitting
+    var trix = document.querySelector('trix-editor');
+    document.getElementById('content_html_input').value = trix ? trix.innerHTML : '';
+    form.submit();
   }
 
+  // Toggle schedule date section
+  function toggleSchedule(checkbox) {
+    var section = document.getElementById('schedule-section');
+    var btn = document.getElementById('publish-btn');
+    section.style.display = checkbox.checked ? 'block' : 'none';
+    btn.textContent = checkbox.checked ? 'Schedule' : 'Publish now';
+  }
+
+  // Slug auto-generation from title
   document.addEventListener('DOMContentLoaded', function() {
     var titleInput = document.getElementById('title-input');
     var slugInput  = document.getElementById('slug-input');
 
-    // Lock slug auto-generation once the user edits it manually
     slugInput.addEventListener('input', function() {
       slugInput.dataset.manual = 'true';
     });
-
-    // If slug already has a value on page load (edit mode), mark as manual
     if (slugInput.value.trim() !== '') {
       slugInput.dataset.manual = 'true';
     }
-
-    // Auto-generate slug from title while slug is still pristine
     titleInput.addEventListener('input', function() {
       if (slugInput.dataset.manual === 'true') return;
       slugInput.value = titleInput.value
         .toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '') // strip accents
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
         .replace(/[^a-z0-9\s-]/g, '')
         .trim()
         .replace(/\s+/g, '-')

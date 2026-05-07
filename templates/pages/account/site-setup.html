@@ -79,25 +79,10 @@
     </div>
 
     {{/* Auto-polling check panel */}}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 p-5"
-         x-data="{
-           status: 'waiting',
-           pollTimer: null,
-           pollCount: 0,
-           init() { this.$nextTick(() => this.startPolling()); },
-           startPolling() { this.pollTimer = setInterval(() => this.check(), 3000); },
-           check() {
-             this.pollCount++;
-             if (this.pollCount > 100) { clearInterval(this.pollTimer); return; }
-             fetch('/sites/{{domainSlug .Site.Domain}}/check-tracking')
-               .then(r => r.json())
-               .then(d => { if (d.detected) { clearInterval(this.pollTimer); this.status = 'detected'; } })
-               .catch(() => {});
-           }
-         }">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 p-5">
       <div class="flex items-center gap-4">
         <div class="flex-shrink-0 relative w-10 h-10">
-          <div x-show="status === 'waiting'" class="absolute inset-0 flex items-center justify-center">
+          <div id="status-waiting" class="absolute inset-0 flex items-center justify-center">
             <div class="absolute w-10 h-10 rounded-full pulse-ring" style="background:rgba(139,92,246,.15)"></div>
             <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background:#ede9fe">
               <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" style="color:#7c3aed">
@@ -106,7 +91,7 @@
               </svg>
             </div>
           </div>
-          <div x-show="status === 'detected'" style="display:none" class="absolute inset-0 flex items-center justify-center">
+          <div id="status-detected" style="display:none" class="absolute inset-0 flex items-center justify-center">
             <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:#dcfce7">
               <svg class="w-5 h-5" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                 <path class="draw-check" d="M5 13l4 4L19 7"/>
@@ -115,11 +100,11 @@
           </div>
         </div>
         <div class="flex-1">
-          <div x-show="status === 'waiting'">
+          <div id="text-waiting">
             <p class="text-sm font-semibold text-gray-700">Listening for events…</p>
             <p class="text-xs text-gray-400 mt-0.5">Visit your site in a browser, then come back here.</p>
           </div>
-          <div x-show="status === 'detected'" style="display:none">
+          <div id="text-detected" style="display:none">
             <p class="text-sm font-semibold text-green-700">Tracking is working!</p>
             <p class="text-xs text-green-600 mt-0.5">Events are arriving. Your dashboard is ready.</p>
           </div>
@@ -167,5 +152,26 @@ function copySnippet() {
     }, 2000);
   });
 }
+
+// Auto-poll the check-tracking endpoint every 3s until detected
+(function() {
+  var pollCount = 0;
+  var timer = setInterval(function() {
+    pollCount++;
+    if (pollCount > 100) { clearInterval(timer); return; }
+    fetch('/sites/{{domainSlug .Site.Domain}}/check-tracking')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.detected) {
+          clearInterval(timer);
+          document.getElementById('status-waiting').style.display = 'none';
+          document.getElementById('text-waiting').style.display = 'none';
+          document.getElementById('status-detected').style.display = '';
+          document.getElementById('text-detected').style.display = '';
+        }
+      })
+      .catch(function() {});
+  }, 3000);
+})();
 </script>
 {{end}}
