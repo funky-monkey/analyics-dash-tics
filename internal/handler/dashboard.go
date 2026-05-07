@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sidneydekoning/analytics/internal/middleware"
@@ -224,11 +225,90 @@ func (h *DashboardHandler) Funnels(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	funnels, err := h.repos.Funnels.ListBySite(r.Context(), siteID)
+	if err != nil {
+		slog.Error("dashboard.Funnels", "error", err)
+		funnels = nil
+	}
+	var csrf string
+	if c, err := r.Cookie("csrf_token"); err == nil {
+		csrf = c.Value
+	}
 	h.renderDash(w, "funnels.html", map[string]any{
 		"SiteID": siteID, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "funnels",
 		"Period": "30d", "AvailablePeriods": periodsAvailable,
+		"Funnels": funnels, "CSRFToken": csrf,
 	})
+}
+
+// CreateFunnel handles POST /sites/:siteID/funnels.
+// Form fields: name, step_name[] (repeating), step_type[] (repeating), step_value[] (repeating).
+func (h *DashboardHandler) CreateFunnel(w http.ResponseWriter, r *http.Request) {
+	siteID := chi.URLParam(r, "siteID")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		http.Error(w, "name required", http.StatusUnprocessableEntity)
+		return
+	}
+	stepNames := r.Form["step_name"]
+	stepTypes := r.Form["step_type"]
+	stepValues := r.Form["step_value"]
+	if len(stepNames) < 2 {
+		http.Error(w, "at least 2 steps required", http.StatusUnprocessableEntity)
+		return
+	}
+	var steps []*model.FunnelStep
+	for i := range stepNames {
+		mt := "url"
+		if i < len(stepTypes) && stepTypes[i] == "event" {
+			mt = "event"
+		}
+		val := ""
+		if i < len(stepValues) {
+			val = strings.TrimSpace(stepValues[i])
+		}
+		sname := strings.TrimSpace(stepNames[i])
+		if sname == "" || val == "" {
+			continue
+		}
+		steps = append(steps, &model.FunnelStep{
+			Position: i, Name: sname, MatchType: mt, Value: val,
+		})
+	}
+	if len(steps) < 2 {
+		http.Error(w, "at least 2 valid steps required", http.StatusUnprocessableEntity)
+		return
+	}
+	f := &model.Funnel{SiteID: siteID, Name: name}
+	if err := h.repos.Funnels.Create(r.Context(), f, steps); err != nil {
+		slog.Error("dashboard.CreateFunnel", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/sites/"+siteID+"/funnels/"+f.ID, http.StatusSeeOther)
+}
+
+// DeleteFunnel handles POST /sites/:siteID/funnels/:funnelID/delete.
+func (h *DashboardHandler) DeleteFunnel(w http.ResponseWriter, r *http.Request) {
+	siteID := chi.URLParam(r, "siteID")
+	funnelID := chi.URLParam(r, "funnelID")
+	if err := h.repos.Funnels.Delete(r.Context(), funnelID, siteID); err != nil {
+		slog.Error("dashboard.DeleteFunnel", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/sites/"+siteID+"/funnels", http.StatusSeeOther)
+}
+
+// FunnelDetail renders GET /sites/:siteID/funnels/:funnelID.
+// Full implementation in Task 8.
+func (h *DashboardHandler) FunnelDetail(w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
 }
 
 func (h *DashboardHandler) renderDash(w http.ResponseWriter, name string, data any) {

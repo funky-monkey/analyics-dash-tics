@@ -1,8 +1,72 @@
 {{template "dashboard.html" .}}
 {{define "title"}}{{.SiteDomain}} — Funnels{{end}}
 {{define "content"}}
-<h2 class="text-lg font-semibold text-gray-900 mb-4">Funnels</h2>
-<div class="bg-white rounded-xl border border-gray-100 p-12 text-center">
-  <p class="text-gray-400 text-sm">Funnel builder coming soon.</p>
+<div class="flex items-center justify-between mb-6">
+  <h2 class="text-lg font-semibold text-gray-900">Funnels</h2>
 </div>
+
+<div class="bg-white rounded-xl border border-gray-100 p-6 mb-6 max-w-2xl" x-data="{ steps: [{name:'',type:'url',value:''},{name:'',type:'url',value:''}] }">
+  <h3 class="text-sm font-semibold text-gray-700 mb-4">New funnel</h3>
+  <form method="POST" action="/sites/{{.SiteID}}/funnels" class="space-y-4">
+    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+    <div>
+      <label class="block text-xs font-medium text-gray-600 mb-1">Funnel name</label>
+      <input type="text" name="name" placeholder="e.g. Signup flow" required
+             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+    </div>
+    <div class="space-y-2">
+      <label class="block text-xs font-medium text-gray-600">Steps (minimum 2, in order)</label>
+      <template x-for="(step, idx) in steps" :key="idx">
+        <div class="flex gap-2 items-center">
+          <span class="text-xs text-gray-400 w-4" x-text="idx + 1 + '.'"></span>
+          <input type="text" name="step_name" x-model="step.name" placeholder="Step name" required
+                 class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 w-28">
+          <select name="step_type" x-model="step.type"
+                  class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+            <option value="url">URL</option>
+            <option value="event">Event</option>
+          </select>
+          <input type="text" name="step_value" x-model="step.value" placeholder="https://... or event-name" required
+                 class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 flex-1">
+          <button type="button" x-show="steps.length > 2" @click="steps.splice(idx, 1)"
+                  class="text-gray-300 hover:text-red-400 text-lg leading-none">&times;</button>
+        </div>
+      </template>
+      <button type="button" @click="steps.push({name:'',type:'url',value:''})"
+              class="text-xs text-violet-600 hover:underline mt-1">+ Add step</button>
+    </div>
+    <button type="submit" class="btn-primary">Create funnel</button>
+  </form>
+</div>
+
+{{if .Funnels}}
+<div class="bg-white rounded-xl border border-gray-100 overflow-hidden max-w-2xl">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50">
+      <tr class="text-xs text-gray-400 border-b border-gray-100">
+        <th class="text-left px-4 py-3 font-medium">Name</th>
+        <th class="text-left px-4 py-3 font-medium">Created</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Funnels}}
+      <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+        <td class="px-4 py-3 font-medium text-gray-900">
+          <a href="/sites/{{$.SiteID}}/funnels/{{.ID}}" class="hover:text-violet-600">{{.Name}}</a>
+        </td>
+        <td class="px-4 py-3 text-gray-400 text-xs">{{.CreatedAt}}</td>
+        <td class="px-4 py-3 flex gap-3 items-center">
+          <a href="/sites/{{$.SiteID}}/funnels/{{.ID}}" class="text-xs text-violet-600 hover:underline">View</a>
+          <form method="POST" action="/sites/{{$.SiteID}}/funnels/{{.ID}}/delete" onsubmit="return confirm('Delete this funnel?')" style="display:inline">
+            <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+            <button type="submit" class="text-xs text-red-400 hover:text-red-600">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
 {{end}}
