@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashtics tracking test</title>
+  <script
+    src="https://dash.local/static/script.js"
+    data-site="tk_0e910d975fbbd9c4"
+    async></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 80px auto; padding: 0 24px; color: #111; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    p  { color: #555; margin-bottom: 24px; }
+    button { padding: 10px 20px; background: #7c3aed; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-right: 8px; margin-bottom: 8px; }
+    button:hover { background: #6d28d9; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    #log { margin-top: 24px; font-size: 13px; color: #555; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; min-height: 60px; font-family: monospace; white-space: pre-line; }
+  </style>
+</head>
+<body>
+
+  <h1>Dashtics tracking test</h1>
+  <p>This page fires a <strong>pageview</strong> on load. Use the buttons below to fire custom events.</p>
+
+  <button onclick="track('button_click', { label: 'primary_cta' })">Fire button_click</button>
+  <button onclick="track('signup_start', { plan: 'pro' })">Fire signup_start</button>
+  <button onclick="track('video_play', { title: 'demo' })">Fire video_play</button>
+  <button onclick="track('file_download', { file: 'brochure.pdf' })">Fire file_download</button>
+  <button onclick="window.location.href='?page=2'">Navigate (new pageview)</button>
+
+  <div id="log">Waiting for tracking script to load…</div>
+
+  <script>
+    function log(msg) {
+      var el = document.getElementById('log');
+      var ts = new Date().toLocaleTimeString();
+      el.textContent += '[' + ts + '] ' + msg + '\n';
+    }
+
+    function track(event, props) {
+      if (window.analytics && window.analytics.track) {
+        window.analytics.track(event, props);
+        log('fired: ' + event + ' ' + JSON.stringify(props));
+      } else {
+        log('ERROR: window.analytics not ready yet');
+      }
+    }
+
+    // Wait for script to load then confirm
+    var waited = 0;
+    var check = setInterval(function() {
+      waited += 100;
+      if (window.analytics) {
+        clearInterval(check);
+        log('tracking script loaded ✓ (site: ' + (window.analytics.siteToken || 'tk_0e910d975fbbd9c4') + ')');
+        log('pageview sent on load');
+      } else if (waited > 5000) {
+        clearInterval(check);
+        log('ERROR: script did not load after 5s — check network tab');
+      }
+    }, 100);
+  </script>
+
+</body>
+</html>
