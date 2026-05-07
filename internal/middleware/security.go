@@ -91,7 +91,7 @@ func CSRF(next http.Handler) http.Handler {
 				return
 			}
 			token = base64.URLEncoding.EncodeToString(b)
-			http.SetCookie(w, &http.Cookie{
+			http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: HttpOnly=false is required so HTMX can read the token
 				Name:     "csrf_token",
 				Value:    token,
 				Path:     "/",

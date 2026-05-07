@@ -33,9 +33,10 @@ func TestUserRepository_CreateAndGetByEmail(t *testing.T) {
 	repos := setupTestRepos(t)
 	ctx := context.Background()
 
+	const testHash = "$2a$12$somehash" //nolint:gosec // G101: test fixture, not a real credential
 	u := &model.User{
 		Email:        uniqueEmail(),
-		PasswordHash: "$2a$12$somehash",
+		PasswordHash: testHash,
 		Role:         model.RoleUser,
 		Name:         "Test User",
 		IsActive:     true,

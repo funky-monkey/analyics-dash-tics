@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/sidneydekoning/analytics/config"
@@ -10,18 +9,11 @@ import (
 )
 
 func TestLoad_AllRequired(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgres://localhost/test")
-	os.Setenv("JWT_SECRET", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	os.Setenv("JWT_REFRESH_SECRET", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	os.Setenv("BASE_URL", "http://localhost:8090")
-	os.Setenv("PORT", "8090")
-	defer func() {
-		os.Unsetenv("DATABASE_URL")
-		os.Unsetenv("JWT_SECRET")
-		os.Unsetenv("JWT_REFRESH_SECRET")
-		os.Unsetenv("BASE_URL")
-		os.Unsetenv("PORT")
-	}()
+	t.Setenv("DATABASE_URL", "postgres://localhost/test")
+	t.Setenv("JWT_SECRET", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	t.Setenv("JWT_REFRESH_SECRET", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	t.Setenv("BASE_URL", "http://localhost:8090")
+	t.Setenv("PORT", "8090")
 
 	cfg, err := config.Load()
 	require.NoError(t, err)
@@ -31,25 +23,18 @@ func TestLoad_AllRequired(t *testing.T) {
 }
 
 func TestLoad_MissingRequired(t *testing.T) {
-	os.Unsetenv("DATABASE_URL")
+	t.Setenv("DATABASE_URL", "")
 	_, err := config.Load()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "DATABASE_URL")
 }
 
 func TestLoad_IsDev(t *testing.T) {
-	os.Setenv("DATABASE_URL", "postgres://localhost/test")
-	os.Setenv("JWT_SECRET", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	os.Setenv("JWT_REFRESH_SECRET", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	os.Setenv("BASE_URL", "http://localhost:8090")
-	os.Setenv("ENV", "development")
-	defer func() {
-		os.Unsetenv("DATABASE_URL")
-		os.Unsetenv("JWT_SECRET")
-		os.Unsetenv("JWT_REFRESH_SECRET")
-		os.Unsetenv("BASE_URL")
-		os.Unsetenv("ENV")
-	}()
+	t.Setenv("DATABASE_URL", "postgres://localhost/test")
+	t.Setenv("JWT_SECRET", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	t.Setenv("JWT_REFRESH_SECRET", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	t.Setenv("BASE_URL", "http://localhost:8090")
+	t.Setenv("ENV", "development")
 
 	cfg, err := config.Load()
 	require.NoError(t, err)

@@ -184,7 +184,7 @@ func buildTemplateMap(basePath, pagesRoot string) (map[string]*template.Template
 			}
 			return s[i:j]
 		},
-		"safeHTML": func(s string) template.HTML { return template.HTML(s) },
+		"safeHTML": func(s string) template.HTML { return template.HTML(s) }, //nolint:gosec // G203: trusted CMS content only
 		"defaultStr": func(def, val string) string {
 			if val == "" {
 				return def

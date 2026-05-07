@@ -35,18 +35,18 @@ func ParseUA(uaString string) UAResult {
 }
 
 func normaliseOS(raw string) string {
-	switch {
-	case raw == "Mac OS X" || raw == "macOS":
+	switch raw {
+	case "Mac OS X", "macOS":
 		return "macOS"
-	case raw == "Windows" || raw == "Windows 10" || raw == "Windows 11":
+	case "Windows", "Windows 10", "Windows 11":
 		return "Windows"
-	case raw == "Linux":
+	case "Linux":
 		return "Linux"
-	case raw == "iPhone OS" || raw == "iOS":
+	case "iPhone OS", "iOS":
 		return "iOS"
-	case raw == "Android":
+	case "Android":
 		return "Android"
-	case raw == "Chrome OS" || raw == "ChromeOS":
+	case "Chrome OS", "ChromeOS":
 		return "ChromeOS"
 	default:
 		return raw

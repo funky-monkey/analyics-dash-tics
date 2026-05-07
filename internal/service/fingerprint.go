@@ -37,8 +37,8 @@ func (f *fingerprinter) SessionID(siteID, ip, userAgent string, t time.Time) str
 func (f *fingerprinter) hash(parts ...string) string {
 	h := sha256.New()
 	for _, p := range parts {
-		fmt.Fprintf(h, "%s|", p)
+		_, _ = fmt.Fprintf(h, "%s|", p)
 	}
-	fmt.Fprintf(h, "%s", f.salt)
+	_, _ = fmt.Fprintf(h, "%s", f.salt)
 	return hex.EncodeToString(h.Sum(nil))[:16]
 }
