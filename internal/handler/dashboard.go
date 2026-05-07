@@ -394,14 +394,34 @@ func (h *DashboardHandler) Audience(w http.ResponseWriter, r *http.Request) {
 	period := periodParam(r)
 	from, to := service.DateRange(period)
 	slug := domainSlug(site.Domain)
-	countries, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "country", from, to, 20)
-	devices, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "device_type", from, to, 5)
-	browsers, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "browser", from, to, 10)
+
+	var (
+		countries         []*model.AudienceStat
+		devices           []*model.AudienceStat
+		browsers          []*model.AudienceStat
+		newVisitors       int64
+		returningVisitors int64
+		wg                sync.WaitGroup
+	)
+	wg.Add(4)
+	go func() { defer wg.Done(); countries, _ = h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "country", from, to, 20) }()
+	go func() { defer wg.Done(); devices, _ = h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "device_type", from, to, 5) }()
+	go func() { defer wg.Done(); browsers, _ = h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "browser", from, to, 10) }()
+	go func() {
+		defer wg.Done()
+		newVisitors, returningVisitors, _ = h.repos.Stats.GetNewVsReturning(r.Context(), site.ID, from, to)
+	}()
+	wg.Wait()
+
 	h.renderDash(w, r, "audience.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "audience",
 		"Period": period, "AvailablePeriods": periodsAvailable,
-		"Countries": countries, "Devices": devices, "Browsers": browsers,
+		"Countries":         countries,
+		"Devices":           devices,
+		"Browsers":          browsers,
+		"NewVisitors":       newVisitors,
+		"ReturningVisitors": returningVisitors,
 	})
 }
 

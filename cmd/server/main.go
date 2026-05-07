@@ -213,6 +213,13 @@ func buildTemplateMap(basePath, pagesRoot string) (map[string]*template.Template
 		},
 		"inc": func(i int) int { return i + 1 },
 		"dec": func(i int) int { return i - 1 },
+		"add": func(a, b int64) int64 { return a + b },
+		"pct": func(part, total int64) int64 {
+			if total == 0 {
+				return 0
+			}
+			return part * 100 / total
+		},
 		// dict/list/helpItem: used by the help-card partial.
 		"dict": func(pairs ...any) map[string]any {
 			m := make(map[string]any, len(pairs)/2)
