@@ -1,5 +1,5 @@
 # Makefile
-.PHONY: dev test lint build tidy tailwind
+.PHONY: dev seed test lint build tidy tailwind
 
 # Load .env if it exists
 ifneq (,$(wildcard .env))
@@ -9,6 +9,9 @@ endif
 
 dev:
 	go run ./cmd/server
+
+seed:
+	go run ./cmd/seed
 
 test:
 	go test -race ./...
