@@ -1,0 +1,23 @@
+[Unit]
+Description=Analytics SaaS
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=analytics
+WorkingDirectory=/opt/analytics
+ExecStart=/opt/analytics/bin/analytics
+Restart=on-failure
+RestartSec=5s
+EnvironmentFile=/opt/analytics/.env
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/analytics
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=analytics
+
+[Install]
+WantedBy=multi-user.target
