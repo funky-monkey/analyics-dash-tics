@@ -122,6 +122,10 @@ func main() {
 
 	r.With(jwtAuth).Group(func(r chi.Router) {
 		r.Get("/dashboard", dashHandler.Aggregate)
+		// Catch sub-paths like /dashboard/overview generated when SiteBaseURL="/dashboard"
+		r.Get("/dashboard/{rest}", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/dashboard", http.StatusFound)
+		})
 		r.Get("/account/sites/new", sitesHandler.NewSitePage)
 		r.Post("/account/sites/new", sitesHandler.CreateSite)
 		r.Get("/sites/{siteID}/setup", sitesHandler.Setup)
