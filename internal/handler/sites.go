@@ -152,7 +152,7 @@ func (h *SitesHandler) CheckTracking(w http.ResponseWriter, r *http.Request) {
 
 // Settings renders GET /sites/:siteID/settings.
 func (h *SitesHandler) Settings(w http.ResponseWriter, r *http.Request) {
-	siteID := r.PathValue("siteID")
+	siteID := chi.URLParam(r, "siteID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
@@ -166,7 +166,7 @@ func (h *SitesHandler) Settings(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		csrf = c.Value
 	}
-	h.renderTemplate(w, "settings.html", map[string]any{
+	h.renderDash(w, "settings.html", map[string]any{
 		"SiteID":           siteID,
 		"SiteDomain":       site.Domain,
 		"SiteBaseURL":      "/sites/" + siteID,
@@ -181,7 +181,7 @@ func (h *SitesHandler) Settings(w http.ResponseWriter, r *http.Request) {
 
 // UpdateSite handles POST /sites/:siteID/settings.
 func (h *SitesHandler) UpdateSite(w http.ResponseWriter, r *http.Request) {
-	siteID := r.PathValue("siteID")
+	siteID := chi.URLParam(r, "siteID")
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
@@ -205,7 +205,7 @@ func (h *SitesHandler) UpdateSite(w http.ResponseWriter, r *http.Request) {
 
 // DeleteSite handles POST /sites/:siteID/delete.
 func (h *SitesHandler) DeleteSite(w http.ResponseWriter, r *http.Request) {
-	siteID := r.PathValue("siteID")
+	siteID := chi.URLParam(r, "siteID")
 	if err := h.repos.Sites.Delete(r.Context(), siteID); err != nil {
 		slog.Error("sites.DeleteSite", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -235,7 +235,7 @@ func (h *SitesHandler) GoalsList(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		csrf = c.Value
 	}
-	h.renderTemplate(w, "goals.html", map[string]any{
+	h.renderDash(w, "goals.html", map[string]any{
 		"SiteID":           siteID,
 		"SiteDomain":       site.Domain,
 		"SiteBaseURL":      "/sites/" + siteID,
@@ -299,5 +299,23 @@ func (h *SitesHandler) renderTemplate(w http.ResponseWriter, name string, data a
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := t.ExecuteTemplate(w, "base.html", data); err != nil {
 		slog.Error("render template", "name", name, "error", err)
+	}
+}
+
+// renderDash renders templates that use the dashboard layout (templates/layout/dashboard.html).
+func (h *SitesHandler) renderDash(w http.ResponseWriter, name string, data any) {
+	if h.tmpls == nil {
+		w.Header().Set("Content-Type", "text/html")
+		return
+	}
+	t, ok := h.tmpls[name]
+	if !ok {
+		slog.Error("dashboard template not found", "name", name)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(w, "dashboard.html", data); err != nil {
+		slog.Error("render dashboard template", "name", name, "error", err)
 	}
 }
