@@ -90,10 +90,15 @@ func (r *pgAdminRepository) ListAllSites(ctx context.Context, limit, offset int)
 }
 
 func (r *pgAdminRepository) WriteAuditLog(ctx context.Context, actorID, action, resourceType, resourceID, ipHash string) error {
+	// actor_id is UUID — pass nil when actorID is empty to avoid a type-cast error.
+	var actor interface{}
+	if actorID != "" {
+		actor = actorID
+	}
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO audit_log (actor_id, action, resource_type, resource_id, ip_hash)
 		 VALUES ($1, $2, $3, $4, $5)`,
-		actorID, action, resourceType, resourceID, ipHash)
+		actor, action, resourceType, resourceID, ipHash)
 	if err != nil {
 		return fmt.Errorf("adminRepository.WriteAuditLog: %w", err)
 	}
