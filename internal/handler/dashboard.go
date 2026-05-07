@@ -158,12 +158,133 @@ func (h *DashboardHandler) Sources(w http.ResponseWriter, r *http.Request) {
 	period := periodParam(r)
 	from, to := service.DateRange(period)
 	slug := domainSlug(site.Domain)
-	sources, _ := h.repos.Stats.GetTopSources(r.Context(), site.ID, from, to, 50)
+	sources, _ := h.repos.Stats.GetTopSources(r.Context(), site.ID, from, to, 200)
 	h.renderDash(w, "sources.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "sources",
-		"Period": period, "AvailablePeriods": periodsAvailable, "Sources": sources,
+		"Period": period, "AvailablePeriods": periodsAvailable,
+		"SourceGroups": groupSources(sources),
 	})
+}
+
+// SourceRow is one referrer row inside a channel group.
+type SourceRow struct {
+	Referrer  string
+	Sessions  int64
+	Pageviews int64
+	BarPct    int // 0–100 for CSS width
+}
+
+// SourceGroup is one channel section on the sources page.
+type SourceGroup struct {
+	Channel string
+	Label   string
+	Dot     string // accent hex (dot + border)
+	Bg      string // badge background hex
+	Text    string // badge text hex
+	Total   int64
+	Rows    []SourceRow
+}
+
+// channelOrder defines the display order for channel groups.
+var channelOrder = []string{
+	"organic", "direct", "referral", "social", "email", "paid", "ai", "dark_social",
+}
+
+type channelStyle struct{ dot, bg, text, label string }
+
+var channelStyles = map[string]channelStyle{
+	"organic":    {"#22c55e", "#dcfce7", "#15803d", "Organic search"},
+	"direct":     {"#94a3b8", "#f1f5f9", "#475569", "Direct"},
+	"referral":   {"#06b6d4", "#cffafe", "#0e7490", "Referral"},
+	"social":     {"#3b82f6", "#dbeafe", "#1d4ed8", "Social"},
+	"email":      {"#f59e0b", "#fef3c7", "#92400e", "Email"},
+	"paid":       {"#f97316", "#ffedd5", "#c2410c", "Paid"},
+	"ai":         {"#8b5cf6", "#ede9fe", "#6d28d9", "AI"},
+	"dark_social":{"#64748b", "#f8fafc", "#334155", "Dark social"},
+}
+
+// groupSources converts a flat source list into ordered, colored channel groups.
+func groupSources(sources []*model.SourceStat) []SourceGroup {
+	byChannel := make(map[string][]model.SourceStat)
+	for _, s := range sources {
+		ch := s.Channel
+		if ch == "" {
+			ch = "direct"
+		}
+		byChannel[ch] = append(byChannel[ch], *s)
+	}
+
+	// Build groups in canonical order; unknown channels appended last.
+	seen := make(map[string]bool)
+	var groups []SourceGroup
+	for _, ch := range channelOrder {
+		rows, ok := byChannel[ch]
+		if !ok {
+			continue
+		}
+		seen[ch] = true
+		groups = append(groups, buildGroup(ch, rows))
+	}
+	for ch, rows := range byChannel {
+		if !seen[ch] {
+			groups = append(groups, buildGroup(ch, rows))
+		}
+	}
+	return groups
+}
+
+func buildGroup(channel string, rows []model.SourceStat) SourceGroup {
+	style, ok := channelStyles[channel]
+	if !ok {
+		style = channelStyle{"#94a3b8", "#f1f5f9", "#475569", strings.Title(channel)} //nolint:staticcheck
+	}
+
+	var total int64
+	var max int64
+	for _, r := range rows {
+		total += r.Sessions
+		if r.Sessions > max {
+			max = r.Sessions
+		}
+	}
+
+	srows := make([]SourceRow, 0, len(rows))
+	for _, r := range rows {
+		ref := cleanReferrer(r.Referrer)
+		if ref == "" {
+			ref = "(direct / none)"
+		}
+		pct := 0
+		if max > 0 {
+			pct = int(r.Sessions * 100 / max)
+		}
+		srows = append(srows, SourceRow{
+			Referrer:  ref,
+			Sessions:  r.Sessions,
+			Pageviews: r.Pageviews,
+			BarPct:    pct,
+		})
+	}
+
+	return SourceGroup{
+		Channel: channel,
+		Label:   style.label,
+		Dot:     style.dot,
+		Bg:      style.bg,
+		Text:    style.text,
+		Total:   total,
+		Rows:    srows,
+	}
+}
+
+// cleanReferrer strips protocol and www from a referrer URL.
+func cleanReferrer(ref string) string {
+	ref = strings.TrimPrefix(ref, "https://")
+	ref = strings.TrimPrefix(ref, "http://")
+	ref = strings.TrimPrefix(ref, "www.")
+	ref = strings.TrimSuffix(ref, "/")
+	return ref
 }
 
 // Audience renders GET /sites/:siteID/audience.
