@@ -10,6 +10,7 @@ type Repos struct {
 	Stats  StatsRepository
 	Admin  AdminRepository
 	CMS    CMSRepository
+	Goals  GoalRepository
 }
 
 // New creates a Repos with all pg implementations wired up.
@@ -21,5 +22,6 @@ func New(pool *pgxpool.Pool) *Repos {
 		Stats:  &pgStatsRepository{pool: pool},
 		Admin:  &pgAdminRepository{pool: pool},
 		CMS:    &pgCMSRepository{pool: pool},
+		Goals:  &pgGoalRepository{pool: pool},
 	}
 }
