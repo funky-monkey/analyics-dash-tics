@@ -11,9 +11,9 @@
   <link rel="stylesheet" href="/static/vendor/uplot.min.css">
   <script src="/static/vendor/chart.min.js"></script>
 </head>
-<body class="bg-gray-50 text-gray-900 antialiased flex">
+<body class="bg-gray-50 text-gray-900 antialiased">
 
-  <aside class="w-14 bg-gray-900 min-h-screen flex flex-col items-center py-4 gap-3 shrink-0">
+  <aside class="fixed top-0 left-0 h-screen w-14 bg-gray-900 flex flex-col items-center py-4 gap-3 z-40">
     <a href="/dashboard" class="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center mb-2">
       <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
         <path d="M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z"/>
@@ -50,7 +50,7 @@
     </a>
   </aside>
 
-  <div class="flex-1 flex flex-col min-h-screen">
+  <div class="ml-14 flex flex-col min-h-screen">
     <header class="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between">
       <span class="text-sm font-medium text-gray-700 flex items-center gap-3">
         <span class="w-2 h-2 bg-green-400 rounded-full inline-block"></span>
