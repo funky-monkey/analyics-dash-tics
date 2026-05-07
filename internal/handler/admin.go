@@ -134,6 +134,29 @@ func (h *AdminHandler) EditUserPage(w http.ResponseWriter, r *http.Request) {
 // UpdateUser handles POST /admin/users/:id.
 func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	actorID := middleware.UserIDFromContext(r.Context())
+
+	// Prevent admins from deactivating themselves or other admins.
+	target, err := h.repos.Users.GetByID(r.Context(), id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if target.Role == model.RoleAdmin {
+		h.renderAdmin(w, "user-form.html", map[string]any{
+			"ActiveNav": "users", "User": target, "CSRFToken": csrfToken(r),
+			"Error": "Admin accounts cannot be deactivated. Remove the admin role first.",
+		})
+		return
+	}
+	if id == actorID {
+		h.renderAdmin(w, "user-form.html", map[string]any{
+			"ActiveNav": "users", "User": target, "CSRFToken": csrfToken(r),
+			"Error": "You cannot deactivate your own account.",
+		})
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
@@ -142,7 +165,6 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if err := h.repos.Users.SetActive(r.Context(), id, active); err != nil {
 		slog.Error("admin.UpdateUser", "error", err)
 	}
-	actorID := middleware.UserIDFromContext(r.Context())
 	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "update_user", "user", id, "")
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }

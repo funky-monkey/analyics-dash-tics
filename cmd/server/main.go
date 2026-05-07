@@ -60,7 +60,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(authSvc, repos, cfg.BaseURL)
 	authHandler.SetTemplates(tmpls)
 
-	sitesHandler := handler.NewSitesHandler(authSvc, repos)
+	sitesHandler := handler.NewSitesHandler(authSvc, repos, cfg.BaseURL)
 	sitesHandler.SetTemplates(tmpls)
 
 	dashHandler := handler.NewDashboardHandler(authSvc, repos)
@@ -124,6 +124,8 @@ func main() {
 		r.Get("/dashboard", dashHandler.Aggregate)
 		r.Get("/account/sites/new", sitesHandler.NewSitePage)
 		r.Post("/account/sites/new", sitesHandler.CreateSite)
+		r.Get("/sites/{siteID}/setup", sitesHandler.Setup)
+		r.Get("/sites/{siteID}/check-tracking", sitesHandler.CheckTracking)
 		r.Get("/sites/{siteID}/overview", dashHandler.Overview)
 		r.Get("/sites/{siteID}/pages", dashHandler.Pages)
 		r.Get("/sites/{siteID}/sources", dashHandler.Sources)

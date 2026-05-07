@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/sidneydekoning/analytics/internal/middleware"
 	"github.com/sidneydekoning/analytics/internal/model"
@@ -14,14 +15,15 @@ import (
 
 // SitesHandler handles site registration and management routes.
 type SitesHandler struct {
-	auth  service.AuthService
-	repos *repository.Repos
-	tmpls map[string]*template.Template
+	auth    service.AuthService
+	repos   *repository.Repos
+	baseURL string
+	tmpls   map[string]*template.Template
 }
 
 // NewSitesHandler constructs a SitesHandler.
-func NewSitesHandler(auth service.AuthService, repos *repository.Repos) *SitesHandler {
-	return &SitesHandler{auth: auth, repos: repos}
+func NewSitesHandler(auth service.AuthService, repos *repository.Repos, baseURL string) *SitesHandler {
+	return &SitesHandler{auth: auth, repos: repos, baseURL: baseURL}
 }
 
 // SetTemplates wires the template map. Each key is a page name, each value is
@@ -102,7 +104,49 @@ func (h *SitesHandler) CreateSite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/sites/"+site.ID+"/overview", http.StatusSeeOther)
+	http.Redirect(w, r, "/sites/"+site.ID+"/setup", http.StatusSeeOther)
+}
+
+// Setup renders GET /sites/:siteID/setup — the post-creation onboarding page.
+func (h *SitesHandler) Setup(w http.ResponseWriter, r *http.Request) {
+	siteID := r.PathValue("siteID")
+	if h.repos == nil {
+		http.NotFound(w, r)
+		return
+	}
+	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	h.renderTemplate(w, "site-setup.html", map[string]any{
+		"Site":    site,
+		"BaseURL": h.baseURL,
+	})
+}
+
+// CheckTracking handles GET /sites/:siteID/check-tracking — returns JSON indicating
+// whether any events have been received for this site in the last 30 minutes.
+func (h *SitesHandler) CheckTracking(w http.ResponseWriter, r *http.Request) {
+	siteID := r.PathValue("siteID")
+	if h.repos == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"detected":false}`))
+		return
+	}
+	from := time.Now().Add(-30 * time.Minute)
+	count, err := h.repos.Events.CountBySite(r.Context(), siteID, from, time.Now())
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"detected":false}`))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if count > 0 {
+		w.Write([]byte(`{"detected":true}`))
+	} else {
+		w.Write([]byte(`{"detected":false}`))
+	}
 }
 
 func (h *SitesHandler) renderTemplate(w http.ResponseWriter, name string, data any) {

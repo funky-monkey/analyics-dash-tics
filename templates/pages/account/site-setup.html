@@ -1,0 +1,141 @@
+{{template "base.html" .}}
+{{define "title"}}Install tracking — {{.Site.Domain}}{{end}}
+{{define "content"}}
+<div class="min-h-screen bg-gray-50 flex items-center justify-center py-12">
+  <div class="w-full max-w-xl">
+
+    {{/* Header */}}
+    <div class="text-center mb-8">
+      <div class="w-12 h-12 bg-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-1">Add the tracking script</h1>
+      <p class="text-gray-500 text-sm">Paste this snippet into the <code class="bg-gray-100 px-1 rounded text-xs">&lt;head&gt;</code> of every page on <strong>{{.Site.Domain}}</strong></p>
+    </div>
+
+    {{/* Code snippet */}}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
+        <span class="text-xs font-medium text-gray-500">HTML snippet</span>
+        <button onclick="copySnippet()"
+          class="flex items-center gap-1.5 text-xs font-medium text-violet-600 hover:text-violet-800 transition-colors"
+          id="copy-btn">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+          Copy
+        </button>
+      </div>
+      <pre class="p-4 text-sm font-mono text-gray-800 overflow-x-auto whitespace-pre-wrap" id="snippet">&lt;script src="{{$.BaseURL}}/static/script.js"
+  data-site="{{.Site.Token}}" async&gt;&lt;/script&gt;</pre>
+    </div>
+
+    {{/* Steps */}}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 p-5">
+      <h2 class="text-sm font-semibold text-gray-700 mb-4">How to install</h2>
+      <ol class="space-y-3">
+        <li class="flex gap-3">
+          <span class="flex-shrink-0 w-5 h-5 bg-violet-600 text-white text-xs rounded-full flex items-center justify-center font-bold">1</span>
+          <p class="text-sm text-gray-600">Copy the snippet above and paste it inside <code class="bg-gray-100 px-1 rounded text-xs">&lt;head&gt;...&lt;/head&gt;</code> on every page you want to track.</p>
+        </li>
+        <li class="flex gap-3">
+          <span class="flex-shrink-0 w-5 h-5 bg-violet-600 text-white text-xs rounded-full flex items-center justify-center font-bold">2</span>
+          <p class="text-sm text-gray-600">Visit your website in a browser. This will send the first pageview event.</p>
+        </li>
+        <li class="flex gap-3">
+          <span class="flex-shrink-0 w-5 h-5 bg-violet-600 text-white text-xs rounded-full flex items-center justify-center font-bold">3</span>
+          <p class="text-sm text-gray-600">Click <strong>Check installation</strong> below. We'll confirm that data is arriving.</p>
+        </li>
+      </ol>
+    </div>
+
+    {{/* Ping check */}}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 p-5"
+         x-data="{ status: 'idle', checking: false }"
+         id="check-panel">
+
+      <div class="flex items-start justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-gray-700 mb-0.5">Check installation</h2>
+          <p class="text-xs text-gray-400">We look for events received in the last 30 minutes.</p>
+        </div>
+        <button @click="checkInstallation()"
+          :disabled="checking"
+          class="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          <svg x-show="!checking" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <svg x-show="checking" style="display:none" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span x-text="checking ? 'Checking...' : 'Check installation'"></span>
+        </button>
+      </div>
+
+      {{/* Result states */}}
+      <div x-show="status === 'detected'" style="display:none" class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+        <svg class="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <p class="text-sm text-green-700 font-medium">Tracking is working! Events are arriving.</p>
+      </div>
+
+      <div x-show="status === 'not_detected'" style="display:none" class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+        <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <p class="text-sm text-amber-700 font-medium">No events yet</p>
+          <p class="text-xs text-amber-600 mt-0.5">Make sure the script is in your page's <code>&lt;head&gt;</code> and visit your site in a browser first.</p>
+        </div>
+      </div>
+    </div>
+
+    {{/* Actions */}}
+    <div class="flex gap-3">
+      <a href="/sites/{{.Site.ID}}/overview"
+         class="flex-1 text-center py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-lg text-sm transition-colors">
+        Go to dashboard →
+      </a>
+      <a href="/account/sites/new"
+         class="px-4 py-2.5 border border-gray-200 hover:border-gray-300 text-gray-600 font-medium rounded-lg text-sm transition-colors">
+        Add another site
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function copySnippet() {
+  var text = document.getElementById('snippet').innerText;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.getElementById('copy-btn');
+    btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copied!';
+    setTimeout(function() {
+      btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> Copy';
+    }, 2000);
+  });
+}
+
+function checkInstallation() {
+  var panel = document.getElementById('check-panel');
+  var alpine = panel._x_dataStack && panel._x_dataStack[0];
+  if (!alpine) return;
+  alpine.checking = true;
+  alpine.status = 'idle';
+  fetch('/sites/{{.Site.ID}}/check-tracking')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      alpine.checking = false;
+      alpine.status = data.detected ? 'detected' : 'not_detected';
+    })
+    .catch(function() {
+      alpine.checking = false;
+      alpine.status = 'not_detected';
+    });
+}
+</script>
+{{end}}

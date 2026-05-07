@@ -21,7 +21,7 @@ var _ = Describe("SitesHandler", func() {
 			[]byte("test-access-secret-32-bytes-xxxxx"),
 			[]byte("test-refresh-secret-32-bytes-xxxx"),
 		)
-		h = handler.NewSitesHandler(authSvc, nil)
+		h = handler.NewSitesHandler(authSvc, nil, "https://dash.local")
 	})
 
 	Describe("GET /account/sites/new", func() {
