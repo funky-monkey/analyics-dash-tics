@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sidneydekoning/analytics/internal/model"
+	"github.com/funky-monkey/analyics-dash-tics/internal/model"
 )
 
 // GoalRepository handles CRUD for conversion goals.

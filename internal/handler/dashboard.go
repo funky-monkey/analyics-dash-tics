@@ -11,10 +11,10 @@ import (
 	"sync"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sidneydekoning/analytics/internal/middleware"
-	"github.com/sidneydekoning/analytics/internal/model"
-	"github.com/sidneydekoning/analytics/internal/repository"
-	"github.com/sidneydekoning/analytics/internal/service"
+	"github.com/funky-monkey/analyics-dash-tics/internal/middleware"
+	"github.com/funky-monkey/analyics-dash-tics/internal/model"
+	"github.com/funky-monkey/analyics-dash-tics/internal/repository"
+	"github.com/funky-monkey/analyics-dash-tics/internal/service"
 )
 
 // DashboardHandler handles all analytics dashboard routes.
@@ -107,10 +107,8 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		devices    []*model.AudienceStat
 		browsers   []*model.AudienceStat
 		funnelList []*model.Funnel
-		mu         sync.Mutex
-		wg         sync.WaitGroup
+		wg sync.WaitGroup
 	)
-	_ = mu // used below when writing funnel results
 
 	run := func(fn func()) {
 		wg.Add(1)

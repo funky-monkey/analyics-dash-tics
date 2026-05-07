@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sidneydekoning/analytics/internal/model"
+	"github.com/funky-monkey/analyics-dash-tics/internal/model"
 )
 
 // ErrBot is returned when the request comes from a known bot or crawler.

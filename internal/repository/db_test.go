@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sidneydekoning/analytics/internal/repository"
+	"github.com/funky-monkey/analyics-dash-tics/internal/repository"
 	"github.com/stretchr/testify/require"
 )
 

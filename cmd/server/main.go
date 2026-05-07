@@ -14,11 +14,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/sidneydekoning/analytics/config"
-	"github.com/sidneydekoning/analytics/internal/handler"
-	"github.com/sidneydekoning/analytics/internal/middleware"
-	"github.com/sidneydekoning/analytics/internal/repository"
-	"github.com/sidneydekoning/analytics/internal/service"
+	"github.com/funky-monkey/analyics-dash-tics/config"
+	"github.com/funky-monkey/analyics-dash-tics/internal/handler"
+	"github.com/funky-monkey/analyics-dash-tics/internal/middleware"
+	"github.com/funky-monkey/analyics-dash-tics/internal/repository"
+	"github.com/funky-monkey/analyics-dash-tics/internal/service"
 )
 
 func main() {

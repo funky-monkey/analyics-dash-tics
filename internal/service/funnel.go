@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/sidneydekoning/analytics/internal/model"
+	"github.com/funky-monkey/analyics-dash-tics/internal/model"
 )
 
 // BuildFunnelResult converts raw step visitor counts into a FunnelResult with

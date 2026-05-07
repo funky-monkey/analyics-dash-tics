@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/sidneydekoning/analytics/internal/service"
+	"github.com/funky-monkey/analyics-dash-tics/internal/service"
 )
 
 type contextKey string

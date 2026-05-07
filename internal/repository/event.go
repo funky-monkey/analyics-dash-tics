@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sidneydekoning/analytics/internal/model"
+	"github.com/funky-monkey/analyics-dash-tics/internal/model"
 )
 
 // EventRepository defines write operations for analytics events.

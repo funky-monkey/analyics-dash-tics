@@ -3,7 +3,7 @@ package service_test
 import (
 	"testing"
 
-	"github.com/sidneydekoning/analytics/internal/service"
+	"github.com/funky-monkey/analyics-dash-tics/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

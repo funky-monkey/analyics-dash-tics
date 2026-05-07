@@ -1,4 +1,4 @@
-module github.com/sidneydekoning/analytics
+module github.com/funky-monkey/analyics-dash-tics
 
 go 1.25.0
 

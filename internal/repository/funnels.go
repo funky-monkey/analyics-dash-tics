@@ -9,7 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sidneydekoning/analytics/internal/model"
+	"github.com/funky-monkey/analyics-dash-tics/internal/model"
 )
 
 // FunnelRepository handles CRUD for funnels + ordered drop-off analysis.

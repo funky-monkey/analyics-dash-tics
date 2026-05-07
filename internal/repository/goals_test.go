@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/sidneydekoning/analytics/internal/model"
-	"github.com/sidneydekoning/analytics/internal/repository"
+	"github.com/funky-monkey/analyics-dash-tics/internal/model"
+	"github.com/funky-monkey/analyics-dash-tics/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

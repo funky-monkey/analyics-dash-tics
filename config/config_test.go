@@ -3,7 +3,7 @@ package config_test
 import (
 	"testing"
 
-	"github.com/sidneydekoning/analytics/config"
+	"github.com/funky-monkey/analyics-dash-tics/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -10,10 +10,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/sidneydekoning/analytics/internal/middleware"
-	"github.com/sidneydekoning/analytics/internal/model"
-	"github.com/sidneydekoning/analytics/internal/repository"
-	"github.com/sidneydekoning/analytics/internal/service"
+	"github.com/funky-monkey/analyics-dash-tics/internal/middleware"
+	"github.com/funky-monkey/analyics-dash-tics/internal/model"
+	"github.com/funky-monkey/analyics-dash-tics/internal/repository"
+	"github.com/funky-monkey/analyics-dash-tics/internal/service"
 )
 
 var (

@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sidneydekoning/analytics/config"
-	"github.com/sidneydekoning/analytics/internal/repository"
+	"github.com/funky-monkey/analyics-dash-tics/config"
+	"github.com/funky-monkey/analyics-dash-tics/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 

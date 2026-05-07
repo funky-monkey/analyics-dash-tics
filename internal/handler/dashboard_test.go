@@ -7,9 +7,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/sidneydekoning/analytics/internal/handler"
-	"github.com/sidneydekoning/analytics/internal/middleware"
-	"github.com/sidneydekoning/analytics/internal/service"
+	"github.com/funky-monkey/analyics-dash-tics/internal/handler"
+	"github.com/funky-monkey/analyics-dash-tics/internal/middleware"
+	"github.com/funky-monkey/analyics-dash-tics/internal/service"
 )
 
 var _ = Describe("DashboardHandler", func() {
