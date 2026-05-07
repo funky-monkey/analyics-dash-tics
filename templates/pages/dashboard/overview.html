@@ -181,14 +181,13 @@ function bannerCopy() {
           {{/* Funnel shape — each layer narrows to match conversion rate */}}
           <div class="space-y-0.5">
             {{range .Steps}}
-            {{/* Clamp width: at least 18% so text is always readable */}}
             {{$w := printf "%.1f" .Converted}}
             <div>
-              <div class="flex items-center justify-center rounded-md px-2 py-2 transition-all"
-                   style="width:max({{$w}}%,18%);margin:0 auto;background:{{if eq .Position 0}}#7c3aed{{else if eq .Position 1}}#8b5cf6{{else if eq .Position 2}}#a78bfa{{else}}#c4b5fd{{end}}">
-                <div class="flex items-center justify-between gap-2 w-full min-w-0">
-                  <span class="text-white text-xs font-medium truncate">{{.Name}}</span>
-                  <span class="text-white text-xs font-bold flex-shrink-0 opacity-90">{{formatNumber .Visitors}}</span>
+              <div class="flex items-center justify-center rounded-md px-3 py-2 transition-all"
+                   style="width:{{$w}}%;min-width:fit-content;margin:0 auto;background:{{if eq .Position 0}}#7c3aed{{else if eq .Position 1}}#8b5cf6{{else if eq .Position 2}}#a78bfa{{else}}#c4b5fd{{end}}">
+                <div class="flex items-center gap-3 whitespace-nowrap">
+                  <span class="text-white text-xs font-medium">{{.Name}}</span>
+                  <span class="text-white text-xs font-bold opacity-90">{{formatNumber .Visitors}}</span>
                 </div>
               </div>
               {{if gt .Position 0}}
