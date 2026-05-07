@@ -61,17 +61,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := seedEvents(ctx, pool, siteID); err != nil {
+	baseURL := "https://" + domain
+
+	if err := seedEvents(ctx, pool, siteID, baseURL); err != nil {
 		slog.Error("seedEvents", "error", err)
 		os.Exit(1)
 	}
 
-	if err := seedGoals(ctx, pool, siteID); err != nil {
+	if err := seedGoals(ctx, pool, siteID, baseURL); err != nil {
 		slog.Error("seedGoals", "error", err)
 		os.Exit(1)
 	}
 
-	if err := seedFunnels(ctx, pool, siteID); err != nil {
+	if err := seedFunnels(ctx, pool, siteID, baseURL); err != nil {
 		slog.Error("seedFunnels", "error", err)
 		os.Exit(1)
 	}
@@ -120,7 +122,7 @@ func resolveSeedSite(ctx context.Context, pool *pgxpool.Pool) (string, string, e
 }
 
 // seedEvents deletes old seed data and inserts fresh events.
-func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
+func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID, baseURL string) error {
 	tag, err := pool.Exec(ctx, `DELETE FROM events WHERE site_id=$1`, siteID)
 	if err != nil {
 		return fmt.Errorf("delete events: %w", err)
@@ -230,7 +232,7 @@ func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 				if pg == 0 {
 					ref = referrer
 				} else {
-					ref = "https://acme.io" + entryPage
+					ref = baseURL + entryPage
 				}
 
 				duration := 0
@@ -242,7 +244,7 @@ func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 
 				buf = append(buf, evRow{
 					eventType:   "pageview",
-					url:         "https://acme.io" + pageURL,
+					url:         baseURL + pageURL,
 					referrer:    ref,
 					channel:     channel,
 					utmSource:   utmSource,
@@ -270,7 +272,7 @@ func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 					eprops, _ := json.Marshal(evProps)
 					buf = append(buf, evRow{
 						eventType:  evName,
-						url:        "https://acme.io" + pageURL,
+						url:        baseURL + pageURL,
 						channel:    channel,
 						country:    geo[0],
 						city:       geo[1],
@@ -337,14 +339,14 @@ func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 
 // ── goals & funnels ──────────────────────────────────────────────────────────
 
-func seedGoals(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
+func seedGoals(ctx context.Context, pool *pgxpool.Pool, siteID, baseURL string) error {
 	if _, err := pool.Exec(ctx, `DELETE FROM goals WHERE site_id=$1`, siteID); err != nil {
 		return fmt.Errorf("seedGoals: delete: %w", err)
 	}
 	goals := []struct{ name, typ, value string }{
-		{"Signup page view", "pageview", "https://acme.io/signup"},
-		{"Pricing page view", "pageview", "https://acme.io/pricing"},
-		{"Docs visit", "pageview", "https://acme.io/docs/getting-started"},
+		{"Signup page view", "pageview", baseURL + "/signup"},
+		{"Pricing page view", "pageview", baseURL + "/pricing"},
+		{"Docs visit", "pageview", baseURL + "/docs/getting-started"},
 		{"CTA click", "event", "cta_click"},
 		{"Plan selected", "event", "plan_selected"},
 		{"Signup form submit", "event", "form_submit"},
@@ -362,7 +364,7 @@ func seedGoals(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 	return nil
 }
 
-func seedFunnels(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
+func seedFunnels(ctx context.Context, pool *pgxpool.Pool, siteID, baseURL string) error {
 	// Delete existing funnel steps + funnels (cascade handles steps)
 	if _, err := pool.Exec(ctx, `DELETE FROM funnels WHERE site_id=$1`, siteID); err != nil {
 		return fmt.Errorf("seedFunnels: delete: %w", err)
@@ -376,25 +378,25 @@ func seedFunnels(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 		{
 			"Homepage → Pricing → Signup",
 			[]step{
-				{"Homepage", "url", "https://acme.io/"},
-				{"Pricing", "url", "https://acme.io/pricing"},
-				{"Signup", "url", "https://acme.io/signup"},
+				{"Homepage", "url", baseURL + "/"},
+				{"Pricing", "url", baseURL + "/pricing"},
+				{"Signup", "url", baseURL + "/signup"},
 			},
 		},
 		{
 			"Blog → Pricing → Signup",
 			[]step{
-				{"Blog post", "url", "https://acme.io/blog/privacy-first-analytics"},
-				{"Pricing", "url", "https://acme.io/pricing"},
-				{"Signup", "url", "https://acme.io/signup"},
+				{"Blog post", "url", baseURL + "/blog/privacy-first-analytics"},
+				{"Pricing", "url", baseURL + "/pricing"},
+				{"Signup", "url", baseURL + "/signup"},
 			},
 		},
 		{
 			"Docs → Signup",
 			[]step{
-				{"Docs", "url", "https://acme.io/docs/getting-started"},
-				{"Pricing", "url", "https://acme.io/pricing"},
-				{"Signup", "url", "https://acme.io/signup"},
+				{"Docs", "url", baseURL + "/docs/getting-started"},
+				{"Pricing", "url", baseURL + "/pricing"},
+				{"Signup", "url", baseURL + "/signup"},
 			},
 		},
 		{
@@ -402,7 +404,7 @@ func seedFunnels(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 			[]step{
 				{"CTA click", "event", "cta_click"},
 				{"Plan selected", "event", "plan_selected"},
-				{"Signup", "url", "https://acme.io/signup"},
+				{"Signup", "url", baseURL + "/signup"},
 			},
 		},
 	}
