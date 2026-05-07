@@ -18,14 +18,15 @@ import (
 
 // DashboardHandler handles all analytics dashboard routes.
 type DashboardHandler struct {
-	auth  service.AuthService
-	repos *repository.Repos
-	tmpls map[string]*template.Template
+	auth    service.AuthService
+	repos   *repository.Repos
+	tmpls   map[string]*template.Template
+	baseURL string
 }
 
 // NewDashboardHandler constructs a DashboardHandler. repos may be nil in tests.
-func NewDashboardHandler(auth service.AuthService, repos *repository.Repos) *DashboardHandler {
-	return &DashboardHandler{auth: auth, repos: repos}
+func NewDashboardHandler(auth service.AuthService, repos *repository.Repos, baseURL string) *DashboardHandler {
+	return &DashboardHandler{auth: auth, repos: repos, baseURL: baseURL}
 }
 
 // SetTemplates wires the template map.
@@ -113,6 +114,9 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		"Summary":    summary,
 		"ChartTimes": template.JS(chartTimes), "ChartPageviews": template.JS(chartPageviews), //nolint:gosec // G203: server-generated JSON, not user input
 		"TopPages": pages, "TopSources": sources,
+		"HasData":   summary.Pageviews > 0 || summary.Visitors > 0,
+		"BaseURL":   h.baseURL,
+		"SiteToken": site.Token,
 	})
 }
 

@@ -1,6 +1,57 @@
 {{template "dashboard.html" .}}
 {{define "title"}}{{.SiteDomain}} — Overview{{end}}
 {{define "content"}}
+{{if not .HasData}}
+<div class="rounded-xl border p-5 mb-6 flex gap-4"
+     style="background:#faf5ff;border-color:#e9d5ff"
+     x-data="{ open: true }" x-show="open">
+  <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style="background:#ede9fe">
+    <svg class="w-4 h-4" style="color:#7c3aed" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+  </div>
+  <div class="flex-1 min-w-0">
+    <p class="text-sm font-semibold" style="color:#5b21b6">No data yet for {{.SiteDomain}}</p>
+    <p class="text-xs mt-0.5 mb-3" style="color:#7c3aed">Add this snippet to the <code style="background:#ede9fe;padding:1px 4px;border-radius:4px">&lt;head&gt;</code> of your site, then visit a page to send the first event.</p>
+    <div class="rounded-lg overflow-hidden" style="background:#0d1117">
+      <div class="flex items-center justify-between px-3 py-1.5" style="background:#161b22">
+        <span class="text-xs" style="color:#8b949e">HTML</span>
+        <button id="banner-copy-btn" onclick="bannerCopy()"
+          class="text-xs px-2 py-0.5 rounded transition-colors"
+          style="color:#8b949e;background:transparent"
+          onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,.08)'"
+          onmouseout="if(!this.dataset.copied){this.style.color='#8b949e';this.style.background='transparent'}">
+          Copy
+        </button>
+      </div>
+      <pre id="banner-snippet" class="px-4 py-3 text-xs font-mono overflow-x-auto" style="margin:0;color:#e6edf3"><span style="color:#8b949e">&lt;</span><span style="color:#7ee787">script</span> <span style="color:#79c0ff">src</span><span style="color:#8b949e">="</span><span style="color:#a5d6ff">{{.BaseURL}}/static/script.js</span><span style="color:#8b949e">"</span> <span style="color:#79c0ff">data-site</span><span style="color:#8b949e">="</span><span style="color:#ffa657">{{.SiteToken}}</span><span style="color:#8b949e">"</span> <span style="color:#79c0ff">async</span><span style="color:#8b949e">&gt;&lt;/</span><span style="color:#7ee787">script</span><span style="color:#8b949e">&gt;</span></pre>
+    </div>
+    <a href="/sites/{{.SiteID}}/setup" class="inline-block mt-3 text-xs font-medium" style="color:#7c3aed">View setup instructions →</a>
+  </div>
+  <button @click="open = false" class="flex-shrink-0 self-start p-1 rounded hover:bg-violet-100 transition-colors" style="color:#a78bfa">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+    </svg>
+  </button>
+</div>
+<script>
+function bannerCopy() {
+  var text = document.getElementById('banner-snippet').innerText;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.getElementById('banner-copy-btn');
+    btn.dataset.copied = '1';
+    btn.textContent = 'Copied!';
+    btn.style.color = '#4ade80';
+    setTimeout(function() {
+      delete btn.dataset.copied;
+      btn.textContent = 'Copy';
+      btn.style.color = '#8b949e';
+      btn.style.background = 'transparent';
+    }, 2000);
+  });
+}
+</script>
+{{end}}
 {{template "stats-cards" .}}
 {{template "chart-line" .}}
 <div class="grid grid-cols-2 gap-4">

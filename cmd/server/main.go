@@ -63,7 +63,7 @@ func main() {
 	sitesHandler := handler.NewSitesHandler(authSvc, repos, cfg.BaseURL)
 	sitesHandler.SetTemplates(tmpls)
 
-	dashHandler := handler.NewDashboardHandler(authSvc, repos)
+	dashHandler := handler.NewDashboardHandler(authSvc, repos, cfg.BaseURL)
 	dashHandler.SetTemplates(tmpls)
 
 	adminHandler := handler.NewAdminHandler(authSvc, repos)

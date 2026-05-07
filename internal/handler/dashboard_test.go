@@ -20,7 +20,7 @@ var _ = Describe("DashboardHandler", func() {
 			[]byte("test-access-secret-32-bytes-xxxxx"),
 			[]byte("test-refresh-secret-32-bytes-xxxx"),
 		)
-		h = handler.NewDashboardHandler(authSvc, nil)
+		h = handler.NewDashboardHandler(authSvc, nil, "")
 	})
 
 	Describe("GET /dashboard", func() {
