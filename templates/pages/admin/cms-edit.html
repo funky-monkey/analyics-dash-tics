@@ -59,11 +59,11 @@
            value="{{.Page.Title}}"
            placeholder="Page title…"
            required
-           class="w-full text-3xl font-bold text-gray-900 placeholder-gray-300 border-0 outline-none mb-4 bg-transparent"
-           oninput="maybeAutoSlug(this.value)">
+           class="w-full text-3xl font-bold text-gray-900 placeholder-gray-300 border-0 outline-none mb-4 bg-transparent">
 
-    {{/* Trix editor */}}
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+    {{/* Trix editor — no overflow-hidden: Trix dialogs (link input etc.) are
+         absolutely positioned and get clipped if the container hides overflow */}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
       <input id="trix_content" type="hidden" name="trix_content" value="{{.Page.ContentHTML}}">
       <trix-editor input="trix_content"></trix-editor>
     </div>
@@ -220,22 +220,32 @@
     document.getElementById('form_action').value = val;
   }
 
-  // Auto-generate slug from title (only when slug is empty)
-  function maybeAutoSlug(title) {
-    var slugInput = document.getElementById('slug-input');
-    if (slugInput.dataset.manual === 'true') return;
-    slugInput.value = title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .substring(0, 80);
-  }
+  document.addEventListener('DOMContentLoaded', function() {
+    var titleInput = document.getElementById('title-input');
+    var slugInput  = document.getElementById('slug-input');
 
-  // Once the user manually edits the slug, stop auto-generating
-  document.getElementById('slug-input').addEventListener('input', function() {
-    this.dataset.manual = 'true';
+    // Lock slug auto-generation once the user edits it manually
+    slugInput.addEventListener('input', function() {
+      slugInput.dataset.manual = 'true';
+    });
+
+    // If slug already has a value on page load (edit mode), mark as manual
+    if (slugInput.value.trim() !== '') {
+      slugInput.dataset.manual = 'true';
+    }
+
+    // Auto-generate slug from title while slug is still pristine
+    titleInput.addEventListener('input', function() {
+      if (slugInput.dataset.manual === 'true') return;
+      slugInput.value = titleInput.value
+        .toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '') // strip accents
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .substring(0, 80);
+    });
   });
 </script>
 {{end}}

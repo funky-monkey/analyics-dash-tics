@@ -1,4 +1,4 @@
-# Agent Guidelines — Analytics SaaS
+# Agent Guidelines — Dashtics
 
 This file governs how Claude Code should approach every task in this project.
 All agents working in this repo must follow these rules without exception.
