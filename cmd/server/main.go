@@ -81,9 +81,8 @@ func main() {
 	r.Use(middleware.CSRF)
 	r.Use(chimiddleware.Recoverer)
 
-	// Static files — vendor assets and compiled CSS are immutable between deploys,
-	// so we serve them with a long cache TTL. HTML templates are never cached.
-	r.Handle("/static/*", http.StripPrefix("/static/", staticCacheHandler(http.FileServer(http.Dir("static")))))
+	// Static files
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// Public routes
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -180,26 +179,6 @@ func main() {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}
-}
-
-// staticCacheHandler wraps a file server with aggressive caching for vendor
-// assets and compiled CSS (immutable between deploys), and no caching for
-// anything else under /static/ (e.g. script.js which may change).
-func staticCacheHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasPrefix(r.URL.Path, "/vendor/") ||
-			r.URL.Path == "/css/output.css":
-			// Vendor bundles and compiled CSS: cache for 1 year.
-			// A new deploy produces a new output.css content, and vendor files
-			// only change when explicitly updated.
-			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		default:
-			// script.js and any other static files: 5 minute cache.
-			w.Header().Set("Cache-Control", "public, max-age=300")
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 // buildTemplateMap builds a map from page basename → isolated template set.
