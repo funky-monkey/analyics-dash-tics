@@ -86,7 +86,15 @@ func main() {
 
 	// Public routes
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+		t, ok := tmpls["home.html"]
+		if !ok {
+			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := t.ExecuteTemplate(w, "base.html", nil); err != nil {
+			slog.Error("render home", "error", err)
+		}
 	})
 
 	// Public CMS routes
