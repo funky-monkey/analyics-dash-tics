@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/sidneydekoning/analytics/internal/middleware"
@@ -34,12 +35,18 @@ func (h *AuthHandler) SetTemplates(tmpls map[string]*template.Template) {
 
 type authPageData struct {
 	Error     string
+	Notice    string
+	Next      string
 	CSRFToken string
 }
 
 // LoginPage renders GET /login.
 func (h *AuthHandler) LoginPage(w http.ResponseWriter, r *http.Request) {
-	h.renderAuth(w, r, "login.html", authPageData{})
+	data := authPageData{Next: r.URL.Query().Get("next")}
+	if r.URL.Query().Get("expired") == "1" {
+		data.Notice = "Your session has expired. Please sign in again."
+	}
+	h.renderAuth(w, r, "login.html", data)
 }
 
 // Login handles POST /login.
@@ -66,7 +73,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.issueTokensAndRedirect(w, r, user.ID, string(user.Role), "/dashboard")
+	dest := "/dashboard"
+	if next := r.FormValue("next"); next != "" && strings.HasPrefix(next, "/") {
+		dest = next
+	}
+	h.issueTokensAndRedirect(w, r, user.ID, string(user.Role), dest)
 
 	if err := h.repos.Users.UpdateLastLogin(r.Context(), user.ID); err != nil {
 		slog.Error("update last login", "error", err, "user_id", user.ID)

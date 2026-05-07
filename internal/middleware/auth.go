@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/sidneydekoning/analytics/internal/service"
@@ -21,18 +22,31 @@ const (
 
 // JWTAuth validates the access token from the auth cookie or Authorization header.
 // On success, sets user_id and role in the request context.
-// Returns 401 if no valid token is present.
+// For browser requests (Accept: text/html or cookie-based), redirects to /login?expired=1&next=<url>.
+// For API requests (Authorization header), returns 401.
 func JWTAuth(authSvc service.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString := tokenFromRequest(r)
-			if tokenString == "" {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
+			valid := tokenString != ""
+			var claims *service.TokenClaims
+			if valid {
+				var err error
+				claims, err = authSvc.ParseAccessToken(tokenString)
+				if err != nil {
+					valid = false
+				}
 			}
-			claims, err := authSvc.ParseAccessToken(tokenString)
-			if err != nil {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+			if !valid {
+				// API clients (Bearer token) get a 401 JSON response.
+				if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+					http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+					return
+				}
+				// Browser: redirect to login with session-expired notice + return URL.
+				returnTo := r.URL.RequestURI()
+				loginURL := "/login?expired=1&next=" + url.QueryEscape(returnTo)
+				http.Redirect(w, r, loginURL, http.StatusSeeOther)
 				return
 			}
 			ctx := context.WithValue(r.Context(), ContextKeyUserID, claims.UserID)
