@@ -35,7 +35,9 @@ func TestGoalRepository_CRUD(t *testing.T) {
 	goals, err := repos.Goals.ListBySite(ctx, site.ID)
 	require.NoError(t, err)
 	require.Len(t, goals, 1)
-	assert.Equal(t, "Signup", goals[0].Name)
+	assert.Equal(t, g.SiteID, goals[0].SiteID)
+	assert.Equal(t, "pageview", goals[0].Type)
+	assert.Equal(t, "/signup", goals[0].Value)
 
 	// Delete
 	require.NoError(t, repos.Goals.Delete(ctx, g.ID, site.ID))

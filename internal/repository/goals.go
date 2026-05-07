@@ -38,9 +38,13 @@ func (r *pgGoalRepository) ListBySite(ctx context.Context, siteID string) ([]*mo
 }
 
 func (r *pgGoalRepository) Create(ctx context.Context, g *model.Goal) error {
-	return r.pool.QueryRow(ctx,
+	err := r.pool.QueryRow(ctx,
 		`INSERT INTO goals (site_id, name, type, value) VALUES ($1,$2,$3,$4) RETURNING id`,
 		g.SiteID, g.Name, g.Type, g.Value).Scan(&g.ID)
+	if err != nil {
+		return fmt.Errorf("goalRepository.Create: %w", err)
+	}
+	return nil
 }
 
 func (r *pgGoalRepository) Delete(ctx context.Context, id, siteID string) error {
