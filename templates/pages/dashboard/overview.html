@@ -172,7 +172,7 @@ function bannerCopy() {
             <h4 class="text-sm font-semibold text-gray-800 group-hover:text-violet-700 truncate pr-2">{{.FunnelName}}</h4>
             {{$last := index .Steps (dec (len .Steps))}}
             <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 flex-shrink-0">
-              {{printf "%.0f" $last.Converted}}% conv.
+              {{printf "%.1f" $last.Converted}}% conv.
             </span>
           </div>
           <div class="space-y-2.5">
