@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/sidneydekoning/analytics/internal/middleware"
 	"github.com/sidneydekoning/analytics/internal/model"
 	"github.com/sidneydekoning/analytics/internal/repository"
@@ -211,6 +212,77 @@ func (h *SitesHandler) DeleteSite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+// GoalsList renders GET /sites/:siteID/goals.
+func (h *SitesHandler) GoalsList(w http.ResponseWriter, r *http.Request) {
+	siteID := chi.URLParam(r, "siteID")
+	if h.repos == nil {
+		http.NotFound(w, r)
+		return
+	}
+	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	goals, err := h.repos.Goals.ListBySite(r.Context(), siteID)
+	if err != nil {
+		slog.Error("sites.GoalsList", "error", err)
+		goals = nil
+	}
+	var csrf string
+	if c, err := r.Cookie("csrf_token"); err == nil {
+		csrf = c.Value
+	}
+	h.renderTemplate(w, "goals.html", map[string]any{
+		"SiteID":           siteID,
+		"SiteDomain":       site.Domain,
+		"SiteBaseURL":      "/sites/" + siteID,
+		"ActiveNav":        "settings",
+		"Period":           "30d",
+		"AvailablePeriods": []struct{ Value, Label string }{},
+		"Goals":            goals,
+		"CSRFToken":        csrf,
+	})
+}
+
+// CreateGoal handles POST /sites/:siteID/goals.
+func (h *SitesHandler) CreateGoal(w http.ResponseWriter, r *http.Request) {
+	siteID := chi.URLParam(r, "siteID")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	goalType := r.FormValue("type")
+	value := strings.TrimSpace(r.FormValue("value"))
+	if name == "" || value == "" {
+		http.Error(w, "name and value required", http.StatusUnprocessableEntity)
+		return
+	}
+	if goalType != "pageview" && goalType != "event" && goalType != "outbound" {
+		goalType = "pageview"
+	}
+	g := &model.Goal{SiteID: siteID, Name: name, Type: goalType, Value: value}
+	if err := h.repos.Goals.Create(r.Context(), g); err != nil {
+		slog.Error("sites.CreateGoal", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/sites/"+siteID+"/goals", http.StatusSeeOther)
+}
+
+// DeleteGoal handles POST /sites/:siteID/goals/:goalID/delete.
+func (h *SitesHandler) DeleteGoal(w http.ResponseWriter, r *http.Request) {
+	siteID := chi.URLParam(r, "siteID")
+	goalID := chi.URLParam(r, "goalID")
+	if err := h.repos.Goals.Delete(r.Context(), goalID, siteID); err != nil {
+		slog.Error("sites.DeleteGoal", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/sites/"+siteID+"/goals", http.StatusSeeOther)
 }
 
 func (h *SitesHandler) renderTemplate(w http.ResponseWriter, name string, data any) {

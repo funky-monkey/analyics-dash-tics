@@ -135,6 +135,9 @@ func main() {
 		r.Get("/sites/{siteID}/settings", sitesHandler.Settings)
 		r.Post("/sites/{siteID}/settings", sitesHandler.UpdateSite)
 		r.Post("/sites/{siteID}/delete", sitesHandler.DeleteSite)
+		r.Get("/sites/{siteID}/goals", sitesHandler.GoalsList)
+		r.Post("/sites/{siteID}/goals", sitesHandler.CreateGoal)
+		r.Post("/sites/{siteID}/goals/{goalID}/delete", sitesHandler.DeleteGoal)
 	})
 
 	// Admin routes — role=admin required
