@@ -17,6 +17,10 @@ type StatsRepository interface {
 	GetTopPages(ctx context.Context, siteID string, from, to time.Time, limit int) ([]*model.PageStat, error)
 	GetTopSources(ctx context.Context, siteID string, from, to time.Time, limit int) ([]*model.SourceStat, error)
 	GetAudienceByDimension(ctx context.Context, siteID, dimension string, from, to time.Time, limit int) ([]*model.AudienceStat, error)
+	GetEntryPages(ctx context.Context, siteID string, from, to time.Time, limit int) ([]*model.PageStat, error)
+	GetExitPages(ctx context.Context, siteID string, from, to time.Time, limit int) ([]*model.PageStat, error)
+	GetNewVsReturning(ctx context.Context, siteID string, from, to time.Time) (newVisitors, returning int64, err error)
+	GetActiveVisitors(ctx context.Context, siteID string, windowMinutes int) (int64, error)
 }
 
 type pgStatsRepository struct {
@@ -158,4 +162,93 @@ func (r *pgStatsRepository) GetAudienceByDimension(ctx context.Context, siteID, 
 		}
 	}
 	return stats, nil
+}
+
+func (r *pgStatsRepository) GetEntryPages(ctx context.Context, siteID string, from, to time.Time, limit int) ([]*model.PageStat, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT url, COUNT(*) AS entries
+		FROM (
+			SELECT DISTINCT ON (session_id) url
+			FROM events
+			WHERE site_id = $1 AND type = 'pageview' AND timestamp BETWEEN $2 AND $3
+			ORDER BY session_id, timestamp ASC
+		) first_pages
+		GROUP BY url
+		ORDER BY entries DESC
+		LIMIT $4
+	`, siteID, from, to, limit)
+	if err != nil {
+		return nil, fmt.Errorf("statsRepository.GetEntryPages: %w", err)
+	}
+	defer rows.Close()
+	var pages []*model.PageStat
+	for rows.Next() {
+		p := &model.PageStat{}
+		if err := rows.Scan(&p.URL, &p.Sessions); err != nil {
+			return nil, fmt.Errorf("statsRepository.GetEntryPages: scan: %w", err)
+		}
+		pages = append(pages, p)
+	}
+	return pages, rows.Err()
+}
+
+func (r *pgStatsRepository) GetExitPages(ctx context.Context, siteID string, from, to time.Time, limit int) ([]*model.PageStat, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT url, COUNT(*) AS exits
+		FROM (
+			SELECT DISTINCT ON (session_id) url
+			FROM events
+			WHERE site_id = $1 AND type = 'pageview' AND timestamp BETWEEN $2 AND $3
+			ORDER BY session_id, timestamp DESC
+		) last_pages
+		GROUP BY url
+		ORDER BY exits DESC
+		LIMIT $4
+	`, siteID, from, to, limit)
+	if err != nil {
+		return nil, fmt.Errorf("statsRepository.GetExitPages: %w", err)
+	}
+	defer rows.Close()
+	var pages []*model.PageStat
+	for rows.Next() {
+		p := &model.PageStat{}
+		if err := rows.Scan(&p.URL, &p.Sessions); err != nil {
+			return nil, fmt.Errorf("statsRepository.GetExitPages: scan: %w", err)
+		}
+		pages = append(pages, p)
+	}
+	return pages, rows.Err()
+}
+
+func (r *pgStatsRepository) GetNewVsReturning(ctx context.Context, siteID string, from, to time.Time) (newVisitors, returning int64, err error) {
+	err = r.pool.QueryRow(ctx, `
+		WITH period_visitors AS (
+			SELECT DISTINCT visitor_id
+			FROM events
+			WHERE site_id = $1 AND type = 'pageview' AND timestamp BETWEEN $2 AND $3
+		)
+		SELECT
+			COUNT(*) FILTER (WHERE vfs.first_seen >= $2) AS new_visitors,
+			COUNT(*) FILTER (WHERE vfs.first_seen < $2)  AS returning_visitors
+		FROM period_visitors pv
+		LEFT JOIN visitor_first_seen vfs ON vfs.site_id = $1 AND vfs.visitor_id = pv.visitor_id
+	`, siteID, from, to).Scan(&newVisitors, &returning)
+	if err != nil {
+		return 0, 0, fmt.Errorf("statsRepository.GetNewVsReturning: %w", err)
+	}
+	return newVisitors, returning, nil
+}
+
+func (r *pgStatsRepository) GetActiveVisitors(ctx context.Context, siteID string, windowMinutes int) (int64, error) {
+	var count int64
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT visitor_id)
+		FROM events
+		WHERE site_id = $1
+		  AND timestamp >= NOW() - ($2 * INTERVAL '1 minute')
+	`, siteID, windowMinutes).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("statsRepository.GetActiveVisitors: %w", err)
+	}
+	return count, nil
 }
