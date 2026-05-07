@@ -298,13 +298,10 @@ func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 	// Force a full refresh of all time so the dashboard shows data immediately.
 	slog.Info("refreshing continuous aggregates (this may take a few seconds)...")
 
-	// Compute the full time window covered by the seed data.
-	windowStart := now.AddDate(0, 0, -daysBack).Add(-time.Hour)
-	windowEnd := now.Add(time.Hour)
-
 	for _, view := range []string{"stats_hourly", "page_stats_daily", "source_stats_daily"} {
-		if _, err := pool.Exec(ctx,
-			`CALL refresh_continuous_aggregate($1, $2, $3)`, view, windowStart, windowEnd); err != nil {
+		// Use NULL bounds to refresh all time — avoids pg type inference issues with $N params.
+		q := fmt.Sprintf(`CALL refresh_continuous_aggregate('%s', NULL, NULL)`, view)
+		if _, err := pool.Exec(ctx, q); err != nil {
 			return fmt.Errorf("refresh %s: %w", view, err)
 		}
 		// Verify rows were written
