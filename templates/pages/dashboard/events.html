@@ -1,36 +1,40 @@
 {{template "dashboard.html" .}}
 {{define "title"}}{{.SiteDomain}} — Events{{end}}
 {{define "content"}}
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center justify-between mb-5">
   <h2 class="text-lg font-semibold text-gray-900">Custom events</h2>
   <a href="/sites/{{.SiteID}}/goals" class="text-xs text-violet-600 hover:underline">Manage goals →</a>
 </div>
-
-<div class="bg-white rounded-xl border border-gray-100 overflow-hidden mb-6">
-  <table class="w-full text-sm">
-    <thead class="bg-gray-50">
-      <tr class="text-xs text-gray-400 border-b border-gray-100">
-        <th class="text-left px-4 py-3 font-medium">Event</th>
-        <th class="text-left px-4 py-3 font-medium">Page / URL</th>
-        <th class="text-right px-4 py-3 font-medium">Count</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Events}}
-      <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-        <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-violet-50 text-violet-700 font-medium">{{.EventType}}</span></td>
-        <td class="px-4 py-3 text-gray-500 text-xs truncate max-w-xs">{{.URL}}</td>
-        <td class="px-4 py-3 text-right font-medium text-gray-900">{{formatNumber .Count}}</td>
-      </tr>
-      {{else}}
-      <tr>
-        <td colspan="3" class="px-4 py-10 text-center text-gray-400 text-sm">
-          <p class="mb-2">No custom events yet.</p>
-          <p class="text-xs">Fire events with: <code class="bg-gray-100 px-2 py-0.5 rounded">window.analytics.track('event-name', {key: 'value'})</code></p>
-        </td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+<div class="flex gap-6 items-start">
+  <div class="flex-1 min-w-0">
+    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr class="text-xs text-gray-400 border-b border-gray-100">
+            <th class="text-left px-5 py-3 font-medium">Event</th>
+            <th class="text-left px-5 py-3 font-medium">Page / URL</th>
+            <th class="text-right px-5 py-3 font-medium">Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Events}}
+          <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+            <td class="px-5 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-violet-50 text-violet-700 font-medium">{{.EventType}}</span></td>
+            <td class="px-5 py-3 text-gray-500 text-xs truncate max-w-xs">{{.URL}}</td>
+            <td class="px-5 py-3 text-right font-medium text-gray-900">{{formatNumber .Count}}</td>
+          </tr>
+          {{else}}
+          <tr>
+            <td colspan="3" class="px-5 py-10 text-center text-gray-400 text-sm">
+              <p class="mb-2">No custom events yet.</p>
+              <p class="text-xs">Fire events with: <code class="bg-gray-100 px-2 py-0.5 rounded">window.analytics.track('event-name', {key: 'value'})</code></p>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {{template "help-card" dict "Title" "Custom events" "Icon" "event" "Body" "Custom events let you track specific actions visitors take on your site — beyond just pageviews. Fire them from your JavaScript using the tracking script." "Items" (list (helpItem "How to fire" "Call window.analytics.track('event-name', { key: 'value' }) from any JavaScript on your site.") (helpItem "Event name" "A short string identifying the action, e.g. button_click, form_submit, video_play.") (helpItem "Properties" "An optional object of key-value pairs giving context, e.g. { plan: 'pro', price: 29 }.") (helpItem "Goals" "Create a goal from an event to track conversion rates. Click Manage goals above.") (helpItem "Tip" "Keep event names lowercase with underscores for consistency across your codebase."))}}
 </div>
 {{end}}

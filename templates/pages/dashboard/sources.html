@@ -2,39 +2,36 @@
 {{define "title"}}{{.SiteDomain}} — Sources{{end}}
 {{define "content"}}
 <h2 class="text-lg font-semibold text-gray-900 mb-5">Traffic sources</h2>
-
-{{if .SourceGroups}}
-<div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
-  {{range .SourceGroups}}
-  <div class="bg-white rounded-xl border border-gray-100 overflow-hidden"
-       style="border-top: 3px solid {{.Dot}}">
-
-    {{/* Channel header */}}
-    <div class="px-4 py-3 border-b border-gray-50">
-      <div class="flex items-center gap-2 mb-0.5">
-        <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:{{.Dot}}"></span>
-        <span class="text-xs font-semibold text-gray-700">{{.Label}}</span>
-      </div>
-      <p class="text-lg font-bold text-gray-900 pl-4">{{formatNumber .Total}}</p>
-    </div>
-
-    {{/* Referrer rows */}}
-    <div class="divide-y divide-gray-50">
-      {{range .Rows}}
-      <div class="px-4 py-2 flex items-center justify-between gap-2">
-        <span class="text-xs text-gray-600 truncate">{{.Referrer}}</span>
-        <span class="text-xs font-semibold text-gray-800 flex-shrink-0">{{formatNumber .Sessions}}</span>
+<div class="flex gap-6 items-start">
+  <div class="flex-1 min-w-0">
+    {{if .SourceGroups}}
+    <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      {{range .SourceGroups}}
+      <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" style="border-top: 3px solid {{.Dot}}">
+        <div class="px-4 py-3 border-b border-gray-50">
+          <div class="flex items-center gap-2 mb-0.5">
+            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:{{.Dot}}"></span>
+            <span class="text-xs font-semibold text-gray-700">{{.Label}}</span>
+          </div>
+          <p class="text-lg font-bold text-gray-900 pl-4">{{formatNumber .Total}}</p>
+        </div>
+        <div class="divide-y divide-gray-50">
+          {{range .Rows}}
+          <div class="px-4 py-2 flex items-center justify-between gap-2">
+            <span class="text-xs text-gray-600 truncate">{{.Referrer}}</span>
+            <span class="text-xs font-semibold text-gray-800 flex-shrink-0">{{formatNumber .Sessions}}</span>
+          </div>
+          {{end}}
+        </div>
       </div>
       {{end}}
     </div>
-
+    {{else}}
+    <div class="bg-white rounded-xl border border-gray-100 p-12 text-center">
+      <p class="text-sm text-gray-400">No source data for this period.</p>
+    </div>
+    {{end}}
   </div>
-  {{end}}
+  {{template "help-card" dict "Title" "Traffic sources" "Icon" "source" "Body" "Shows where your visitors come from, grouped by channel. Each channel is identified automatically at the moment an event is collected." "Items" (list (helpItem "Organic" "Visitors arriving from search engines like Google, Bing, or DuckDuckGo without paid ads.") (helpItem "Direct" "Visitors with no referrer — typed URL, bookmarks, or mobile apps.") (helpItem "Referral" "Clicks from links on other websites, blogs, or forums.") (helpItem "Social" "Clicks from Facebook, LinkedIn, Twitter/X, Reddit, TikTok, etc.") (helpItem "Email" "Campaigns tagged with utm_medium=email, or known email client domains.") (helpItem "Paid" "Ads tagged with utm_medium=cpc, ppc, or paid.") (helpItem "AI" "Visitors referred by AI assistants: ChatGPT, Claude, Perplexity, Gemini.") (helpItem "Dark social" "Shared links via messaging apps or email that carry no referrer."))}}
 </div>
-
-{{else}}
-<div class="bg-white rounded-xl border border-gray-100 p-12 text-center">
-  <p class="text-sm text-gray-400">No source data for this period.</p>
-</div>
-{{end}}
 {{end}}

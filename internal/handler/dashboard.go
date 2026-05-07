@@ -102,8 +102,12 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	timeseries, _ := h.repos.Stats.GetTimeSeries(r.Context(), site.ID, from, to)
-	pages, _ := h.repos.Stats.GetTopPages(r.Context(), site.ID, from, to, 10)
-	sources, _ := h.repos.Stats.GetTopSources(r.Context(), site.ID, from, to, 10)
+	pages, _ := h.repos.Stats.GetTopPages(r.Context(), site.ID, from, to, 5)
+	sources, _ := h.repos.Stats.GetTopSources(r.Context(), site.ID, from, to, 30)
+	countries, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "country", from, to, 5)
+	devices, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "device_type", from, to, 5)
+	browsers, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "browser", from, to, 5)
+	funnels, _ := h.repos.Funnels.ListBySite(r.Context(), site.ID)
 
 	chartTimes, chartPageviews := timeSeriesJSON(timeseries)
 
@@ -115,10 +119,15 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		"ChartTimes":     template.JS(chartTimes),     //nolint:gosec // G203: server-generated JSON, not user input
 		"ChartPageviews": template.JS(chartPageviews), //nolint:gosec
 		"HasTimeSeries":  len(timeseries) > 0,
-		"TopPages": pages, "TopSources": sources,
-		"HasData":   summary.Pageviews > 0 || summary.Visitors > 0,
-		"BaseURL":   h.baseURL,
-		"SiteToken": site.Token,
+		"TopPages":       pages,
+		"TopSources":     groupSources(sources),
+		"Countries":      countries,
+		"Devices":        devices,
+		"Browsers":       browsers,
+		"Funnels":        funnels,
+		"HasData":        summary.Pageviews > 0 || summary.Visitors > 0,
+		"BaseURL":        h.baseURL,
+		"SiteToken":      site.Token,
 	})
 }
 

@@ -4,64 +4,65 @@
 <div class="flex items-center justify-between mb-6">
   <h2 class="text-lg font-semibold text-gray-900">Conversion goals</h2>
 </div>
-
-<div class="bg-white rounded-xl border border-gray-100 p-6 mb-6 max-w-2xl">
-  <h3 class="text-sm font-semibold text-gray-700 mb-4">Add goal</h3>
-  <form method="POST" action="/sites/{{.SiteID}}/goals" class="grid grid-cols-1 gap-3">
-    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-    <div class="grid grid-cols-3 gap-3">
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
-        <input type="text" name="name" placeholder="e.g. Signup" required
-               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Type</label>
-        <select name="type" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-          <option value="pageview">Pageview</option>
-          <option value="event">Custom event</option>
-          <option value="outbound">Outbound click</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Value</label>
-        <input type="text" name="value" placeholder="/signup or event_name" required
-               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-      </div>
+<div class="flex gap-6 items-start">
+  <div class="flex-1 min-w-0 space-y-6">
+    <div class="bg-white rounded-xl border border-gray-100 p-6">
+      <h3 class="text-sm font-semibold text-gray-700 mb-4">Add goal</h3>
+      <form method="POST" action="/sites/{{.SiteID}}/goals" class="grid grid-cols-1 gap-3">
+        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
+            <input type="text" name="name" placeholder="e.g. Signup" required
+                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Type</label>
+            <select name="type" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+              <option value="pageview">Pageview</option>
+              <option value="event">Custom event</option>
+              <option value="outbound">Outbound click</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Value</label>
+            <input type="text" name="value" placeholder="/signup or event_name" required
+                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+          </div>
+        </div>
+        <div><button type="submit" class="btn-primary">Add goal</button></div>
+      </form>
     </div>
-    <div>
-      <button type="submit" class="btn-primary">Add goal</button>
+    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr class="text-xs text-gray-400 border-b border-gray-100">
+            <th class="text-left px-5 py-3 font-medium">Name</th>
+            <th class="text-left px-5 py-3 font-medium">Type</th>
+            <th class="text-left px-5 py-3 font-medium">Value</th>
+            <th class="px-5 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Goals}}
+          <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+            <td class="px-5 py-3 font-medium text-gray-900">{{.Name}}</td>
+            <td class="px-5 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-violet-50 text-violet-600">{{.Type}}</span></td>
+            <td class="px-5 py-3 font-mono text-xs text-gray-500">{{.Value}}</td>
+            <td class="px-5 py-3">
+              <form method="POST" action="/sites/{{$.SiteID}}/goals/{{.ID}}/delete" onsubmit="return confirm('Delete this goal?')">
+                <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+                <button type="submit" class="text-xs text-red-400 hover:text-red-600">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {{else}}
+          <tr><td colspan="4" class="px-5 py-8 text-center text-gray-400 text-sm">No goals yet. Add one above.</td></tr>
+          {{end}}
+        </tbody>
+      </table>
     </div>
-  </form>
-</div>
-
-<div class="bg-white rounded-xl border border-gray-100 overflow-hidden max-w-2xl">
-  <table class="w-full text-sm">
-    <thead class="bg-gray-50">
-      <tr class="text-xs text-gray-400 border-b border-gray-100">
-        <th class="text-left px-4 py-3 font-medium">Name</th>
-        <th class="text-left px-4 py-3 font-medium">Type</th>
-        <th class="text-left px-4 py-3 font-medium">Value</th>
-        <th class="px-4 py-3"></th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Goals}}
-      <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-        <td class="px-4 py-3 font-medium text-gray-900">{{.Name}}</td>
-        <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-violet-50 text-violet-600">{{.Type}}</span></td>
-        <td class="px-4 py-3 font-mono text-xs text-gray-500">{{.Value}}</td>
-        <td class="px-4 py-3">
-          <form method="POST" action="/sites/{{$.SiteID}}/goals/{{.ID}}/delete" onsubmit="return confirm('Delete this goal?')">
-            <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
-            <button type="submit" class="text-xs text-red-400 hover:text-red-600">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {{else}}
-      <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400 text-sm">No goals yet. Add one above.</td></tr>
-      {{end}}
-    </tbody>
-  </table>
+  </div>
+  {{template "help-card" dict "Title" "Conversion goals" "Icon" "goal" "Body" "Goals let you define and name the conversions that matter most to your business. Once set up, you can track how many visitors complete each one." "Items" (list (helpItem "Pageview" "Triggered when a visitor views a specific URL, e.g. /thank-you or /signup.") (helpItem "Custom event" "Triggered when your tracking script fires window.analytics.track('event-name').") (helpItem "Outbound" "Triggered when a visitor clicks an external link (requires outbound link tracking in your script).") (helpItem "Value" "For pageview goals, enter the full path (e.g. /signup). For event goals, enter the exact event name.") (helpItem "Tip" "Create goals for your most important conversions — signups, purchases, form submits — so you can measure them in one place."))}}
 </div>
 {{end}}

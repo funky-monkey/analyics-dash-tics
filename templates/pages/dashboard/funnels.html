@@ -5,47 +5,6 @@
   <h2 class="text-lg font-semibold text-gray-900">Funnels</h2>
 </div>
 
-{{/* Explanation card */}}
-<div class="bg-violet-50 border border-violet-100 rounded-xl p-5 mb-6">
-  <div class="flex gap-3">
-    <div class="flex-shrink-0 w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mt-0.5">
-      <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-      </svg>
-    </div>
-    <div class="flex-1 min-w-0">
-      <p class="text-sm font-semibold text-violet-900 mb-1">What is a funnel?</p>
-      <p class="text-sm text-violet-700 leading-relaxed mb-3">
-        A funnel tracks how visitors move through a sequence of steps — for example: homepage → pricing → signup.
-        At each step you see how many visitors continued and how many dropped off.
-        This tells you exactly where in your flow you're losing people.
-      </p>
-      <div class="flex flex-wrap gap-4 text-xs text-violet-700">
-        <div class="flex items-start gap-1.5">
-          <svg class="w-3.5 h-3.5 text-violet-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-          </svg>
-          <span><strong>Steps can be pages or events.</strong> Use a URL for a pageview step, or an event name (e.g. <code class="bg-violet-100 px-1 rounded">button_click</code>) for a custom event step.</span>
-        </div>
-        <div class="flex items-start gap-1.5">
-          <svg class="w-3.5 h-3.5 text-violet-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-          </svg>
-          <span><strong>Works on existing data.</strong> Creating a funnel now immediately shows results from all your historical events — no need to wait for new traffic.</span>
-        </div>
-        <div class="flex items-start gap-1.5">
-          <svg class="w-3.5 h-3.5 text-violet-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-          </svg>
-          <span><strong>Steps must be in order.</strong> A visitor is counted in step 2 only if they completed step 1 first — in chronological order.</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-{{/* Existing funnels */}}
 {{if .Funnels}}
 <div class="bg-white rounded-xl border border-gray-100 overflow-hidden mb-6">
   <div class="px-5 py-3.5 border-b border-gray-50">
@@ -65,18 +24,15 @@
         <td class="px-5 py-3 font-medium text-gray-900">
           <a href="/sites/{{$.SiteID}}/funnels/{{.ID}}" class="hover:text-violet-600 flex items-center gap-2">
             <svg class="w-3.5 h-3.5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
             </svg>
             {{.Name}}
           </a>
         </td>
         <td class="px-5 py-3 text-gray-400 text-xs">{{.CreatedAt}}</td>
         <td class="px-5 py-3 flex gap-3 items-center justify-end">
-          <a href="/sites/{{$.SiteID}}/funnels/{{.ID}}"
-             class="text-xs font-medium text-violet-600 hover:text-violet-800">View →</a>
-          <form method="POST" action="/sites/{{$.SiteID}}/funnels/{{.ID}}/delete"
-                onsubmit="return confirm('Delete this funnel?')" style="display:inline">
+          <a href="/sites/{{$.SiteID}}/funnels/{{.ID}}" class="text-xs font-medium text-violet-600 hover:text-violet-800">View →</a>
+          <form method="POST" action="/sites/{{$.SiteID}}/funnels/{{.ID}}/delete" onsubmit="return confirm('Delete this funnel?')" style="display:inline">
             <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
             <button type="submit" class="text-xs text-red-400 hover:text-red-600">Delete</button>
           </form>
@@ -88,79 +44,67 @@
 </div>
 {{end}}
 
-{{/* Create form */}}
-<div class="bg-white rounded-xl border border-gray-100 p-6 max-w-2xl">
-  <h3 class="text-sm font-semibold text-gray-700 mb-1">Create a new funnel</h3>
-  <p class="text-xs text-gray-400 mb-4">Add at least 2 steps. Use full URLs for pages (e.g. <code class="bg-gray-100 px-1 rounded">https://yoursite.com/pricing</code>) or event names for custom events.</p>
-  <form method="POST" action="/sites/{{.SiteID}}/funnels" class="space-y-4" id="funnel-form">
-    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-    <div>
-      <label class="block text-xs font-medium text-gray-600 mb-1">Funnel name</label>
-      <input type="text" name="name" placeholder="e.g. Homepage → Signup" required
-             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-    </div>
-    <div>
-      <label class="block text-xs font-medium text-gray-600 mb-2">Steps <span class="text-gray-400 font-normal">(in order, minimum 2)</span></label>
-      <div id="steps-container" class="space-y-2">
-        <div class="step-row flex gap-2 items-center">
-          <span class="step-num text-xs text-gray-400 w-4 flex-shrink-0 text-right">1.</span>
-          <input type="text" name="step_name" placeholder="Step name" required
-                 class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 w-28 flex-shrink-0">
-          <select name="step_type"
-                  class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 flex-shrink-0">
-            <option value="url">Page URL</option>
-            <option value="event">Event name</option>
-          </select>
-          <input type="text" name="step_value" placeholder="https://… or event-name" required
-                 class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 flex-1">
-          <button type="button" onclick="removeStep(this)"
-                  class="remove-btn flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-400 rounded hover:bg-red-50 transition-colors"
-                  style="display:none" title="Remove step">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+<div class="flex gap-6 items-start">
+  <div class="flex-1 min-w-0">
+    <div class="bg-white rounded-xl border border-gray-100 p-6">
+      <h3 class="text-sm font-semibold text-gray-700 mb-1">Create a new funnel</h3>
+      <p class="text-xs text-gray-400 mb-4">Add at least 2 steps. Use full URLs for pages (e.g. <code class="bg-gray-100 px-1 rounded">https://yoursite.com/pricing</code>) or event names for custom events.</p>
+      <form method="POST" action="/sites/{{.SiteID}}/funnels" class="space-y-4" id="funnel-form">
+        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Funnel name</label>
+          <input type="text" name="name" placeholder="e.g. Homepage → Signup" required
+                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-2">Steps <span class="text-gray-400 font-normal">(in order, minimum 2)</span></label>
+          <div id="steps-container" class="space-y-2">
+            <div class="step-row flex gap-2 items-center">
+              <span class="step-num text-xs text-gray-400 w-4 flex-shrink-0 text-right">1.</span>
+              <input type="text" name="step_name" placeholder="Step name" required class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 w-28 flex-shrink-0">
+              <select name="step_type" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 flex-shrink-0">
+                <option value="url">Page URL</option>
+                <option value="event">Event name</option>
+              </select>
+              <input type="text" name="step_value" placeholder="https://… or event-name" required class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 flex-1">
+              <button type="button" onclick="removeStep(this)" class="remove-btn flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-400 rounded hover:bg-red-50 transition-colors" style="display:none" title="Remove step">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div class="step-row flex gap-2 items-center">
+              <span class="step-num text-xs text-gray-400 w-4 flex-shrink-0 text-right">2.</span>
+              <input type="text" name="step_name" placeholder="Step name" required class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 w-28 flex-shrink-0">
+              <select name="step_type" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 flex-shrink-0">
+                <option value="url">Page URL</option>
+                <option value="event">Event name</option>
+              </select>
+              <input type="text" name="step_value" placeholder="https://… or event-name" required class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 flex-1">
+              <button type="button" onclick="removeStep(this)" class="remove-btn flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-400 rounded hover:bg-red-50 transition-colors" style="display:none" title="Remove step">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <button type="button" onclick="addStep()" class="mt-2 flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 font-medium">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add step
           </button>
         </div>
-        <div class="step-row flex gap-2 items-center">
-          <span class="step-num text-xs text-gray-400 w-4 flex-shrink-0 text-right">2.</span>
-          <input type="text" name="step_name" placeholder="Step name" required
-                 class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 w-28 flex-shrink-0">
-          <select name="step_type"
-                  class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 flex-shrink-0">
-            <option value="url">Page URL</option>
-            <option value="event">Event name</option>
-          </select>
-          <input type="text" name="step_value" placeholder="https://… or event-name" required
-                 class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 flex-1">
-          <button type="button" onclick="removeStep(this)"
-                  class="remove-btn flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-400 rounded hover:bg-red-50 transition-colors"
-                  style="display:none" title="Remove step">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
+        <div class="flex items-center gap-3 pt-1">
+          <button type="submit" class="btn-primary">Create funnel</button>
+          <p class="text-xs text-gray-400">Results show immediately using existing event data.</p>
         </div>
-      </div>
-      <button type="button" onclick="addStep()"
-              class="mt-2 flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 font-medium">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-        Add step
-      </button>
+      </form>
     </div>
-    <div class="flex items-center gap-3 pt-1">
-      <button type="submit" class="btn-primary">Create funnel</button>
-      <p class="text-xs text-gray-400">Results will show immediately using your existing event data.</p>
-    </div>
-  </form>
+  </div>
+
+  {{template "help-card" dict "Title" "Funnels" "Icon" "funnel" "Body" "A funnel tracks how many visitors complete a sequence of steps — like visiting your homepage, then pricing page, then signing up. Drop-off at each step shows where you lose people." "Items" (list (helpItem "Steps" "Each step is a page URL or a custom event name. Visitors must complete them in order.") (helpItem "Retroactive" "Creating a funnel immediately shows results from all existing event history — no waiting.") (helpItem "Ordered" "A visitor is only counted in step N if they completed step N-1 first, in chronological order.") (helpItem "URLs" "Use the full URL including https://, e.g. https://yoursite.com/pricing") (helpItem "Events" "For event steps, use the exact event name you pass to window.analytics.track()."))}}
 </div>
 
 <script nonce="{{.Nonce}}">
 function addStep() {
   var container = document.getElementById('steps-container');
-  var template  = container.querySelector('.step-row');
-  var clone     = template.cloneNode(true);
+  var tmpl = container.querySelector('.step-row');
+  var clone = tmpl.cloneNode(true);
   clone.querySelectorAll('input').forEach(function(i) { i.value = ''; });
   clone.querySelector('select').value = 'url';
   clone.querySelector('.remove-btn').style.display = '';
@@ -168,12 +112,7 @@ function addStep() {
   renumber();
   clone.querySelector('input[name="step_name"]').focus();
 }
-
-function removeStep(btn) {
-  btn.closest('.step-row').remove();
-  renumber();
-}
-
+function removeStep(btn) { btn.closest('.step-row').remove(); renumber(); }
 function renumber() {
   var rows = document.querySelectorAll('#steps-container .step-row');
   rows.forEach(function(row, i) {

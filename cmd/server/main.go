@@ -209,6 +209,20 @@ func buildTemplateMap(basePath, pagesRoot string) (map[string]*template.Template
 		},
 		"inc": func(i int) int { return i + 1 },
 		"dec": func(i int) int { return i - 1 },
+		// dict/list/helpItem: used by the help-card partial.
+		"dict": func(pairs ...any) map[string]any {
+			m := make(map[string]any, len(pairs)/2)
+			for i := 0; i+1 < len(pairs); i += 2 {
+				if k, ok := pairs[i].(string); ok {
+					m[k] = pairs[i+1]
+				}
+			}
+			return m
+		},
+		"list": func(items ...any) []any { return items },
+		"helpItem": func(title, desc string) map[string]any {
+			return map[string]any{"Title": title, "Desc": desc}
+		},
 	}
 
 	partials, err := filepath.Glob("templates/partials/*.html")
