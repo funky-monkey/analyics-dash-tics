@@ -65,6 +65,9 @@ func (h *CollectHandler) Collect(w http.ResponseWriter, r *http.Request) {
 		ev.SiteID = site.ID
 		if err := h.repos.Events.Write(ctx, ev); err != nil {
 			slog.Error("collect: write event", "error", err, "site_id", site.ID)
+			return
 		}
+		// Best-effort: first-seen data is advisory; ignore errors.
+		_ = h.repos.Events.UpsertVisitorFirstSeen(ctx, ev.SiteID, ev.VisitorID)
 	}()
 }

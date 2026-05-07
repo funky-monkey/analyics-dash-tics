@@ -16,6 +16,7 @@ type EventRepository interface {
 	WriteBatch(ctx context.Context, events []*model.Event) error
 	CountBySite(ctx context.Context, siteID string, from, to time.Time) (int64, error)
 	ListCustomEvents(ctx context.Context, siteID string, from, to time.Time, limit int) ([]*model.CustomEventStat, error)
+	UpsertVisitorFirstSeen(ctx context.Context, siteID, visitorID string) error
 }
 
 type pgEventRepository struct {
@@ -90,4 +91,16 @@ func (r *pgEventRepository) ListCustomEvents(ctx context.Context, siteID string,
 		stats = append(stats, s)
 	}
 	return stats, rows.Err()
+}
+
+func (r *pgEventRepository) UpsertVisitorFirstSeen(ctx context.Context, siteID, visitorID string) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO visitor_first_seen (site_id, visitor_id)
+		 VALUES ($1, $2)
+		 ON CONFLICT (site_id, visitor_id) DO NOTHING`,
+		siteID, visitorID)
+	if err != nil {
+		return fmt.Errorf("eventRepository.UpsertVisitorFirstSeen: %w", err)
+	}
+	return nil
 }
