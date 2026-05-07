@@ -284,6 +284,19 @@ func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 		return err
 	}
 	slog.Info("events inserted", "total", totalEvents)
+
+	// Continuous aggregates are scheduled (hourly/daily) and won't reflect bulk-inserted
+	// data until the next policy run. Force a full refresh now so the dashboard is
+	// immediately populated.
+	slog.Info("refreshing continuous aggregates...")
+	for _, view := range []string{"stats_hourly", "page_stats_daily", "source_stats_daily"} {
+		if _, err := pool.Exec(ctx,
+			`CALL refresh_continuous_aggregate($1, NULL, NULL)`, view); err != nil {
+			return fmt.Errorf("refresh %s: %w", view, err)
+		}
+		slog.Info("refreshed", "view", view)
+	}
+	slog.Info("seed complete — all aggregates refreshed")
 	return nil
 }
 
