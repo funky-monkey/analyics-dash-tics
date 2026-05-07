@@ -9,17 +9,24 @@
       <th class="text-left px-4 py-3 font-medium">Name</th>
       <th class="text-left px-4 py-3 font-medium">Token</th>
       <th class="text-left px-4 py-3 font-medium">Created</th>
+      <th class="px-4 py-3"></th>
     </tr></thead>
     <tbody>
       {{range .Sites}}
-      <tr class="border-b border-gray-50 last:border-0">
+      <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
         <td class="px-4 py-3 font-medium text-gray-900">{{.Domain}}</td>
         <td class="px-4 py-3 text-gray-600">{{.Name}}</td>
         <td class="px-4 py-3 font-mono text-xs text-gray-400">{{.Token}}</td>
         <td class="px-4 py-3 text-gray-400 text-xs">{{.CreatedAt.Format "2006-01-02"}}</td>
+        <td class="px-4 py-3">
+          <form method="POST" action="/admin/sites/{{.ID}}/delete" onsubmit="return confirm('Delete site {{.Domain}}? This will permanently remove all analytics data.')">
+            <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+            <button type="submit" class="text-xs text-red-400 hover:text-red-600">Delete</button>
+          </form>
+        </td>
       </tr>
       {{else}}
-      <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400 text-sm">No sites.</td></tr>
+      <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400 text-sm">No sites.</td></tr>
       {{end}}
     </tbody>
   </table>

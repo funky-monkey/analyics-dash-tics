@@ -118,7 +118,7 @@ func (h *CMSHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actorID := middleware.UserIDFromContext(r.Context())
-	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "create_page:"+status, "cms_page", page.ID, "")
+	auditLog(h.repos, r, actorID, "create_page:"+status, "cms_page", page.ID)
 	http.Redirect(w, r, "/admin/cms/"+page.ID+"/edit", http.StatusSeeOther)
 }
 
@@ -171,8 +171,21 @@ func (h *CMSHandler) UpdatePage(w http.ResponseWriter, r *http.Request) {
 		slog.Error("cms.UpdatePage: set status", "error", err)
 	}
 	actorID := middleware.UserIDFromContext(r.Context())
-	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "update_page:"+status, "cms_page", id, "")
+	auditLog(h.repos, r, actorID, "update_page:"+status, "cms_page", id)
 	http.Redirect(w, r, "/admin/cms/"+id+"/edit", http.StatusSeeOther)
+}
+
+// DeletePage handles POST /admin/cms/:id/delete.
+func (h *CMSHandler) DeletePage(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	actorID := middleware.UserIDFromContext(r.Context())
+	if err := h.repos.CMS.DeletePage(r.Context(), id); err != nil {
+		slog.Error("cms.DeletePage", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	auditLog(h.repos, r, actorID, "delete_page", "cms_page", id)
+	http.Redirect(w, r, "/admin/cms", http.StatusSeeOther)
 }
 
 // resolvePublishState converts a form action + optional scheduled_at string
@@ -217,7 +230,7 @@ func (h *CMSHandler) TogglePublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actorID := middleware.UserIDFromContext(r.Context())
-	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "set_page_status:"+newStatus, "cms_page", id, "")
+	auditLog(h.repos, r, actorID, "set_page_status:"+newStatus, "cms_page", id)
 	http.Redirect(w, r, "/admin/cms", http.StatusSeeOther)
 }
 

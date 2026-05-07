@@ -26,7 +26,15 @@
         <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full {{if eq .Role "admin"}}bg-red-50 text-red-600{{else}}bg-violet-50 text-violet-600{{end}}">{{.Role}}</span></td>
         <td class="px-4 py-3">{{if .IsActive}}<span class="text-green-600 text-xs">Active</span>{{else}}<span class="text-gray-400 text-xs">Inactive</span>{{end}}</td>
         <td class="px-4 py-3 text-gray-400 text-xs">{{.CreatedAt.Format "2006-01-02"}}</td>
-        <td class="px-4 py-3"><a href="/admin/users/{{.ID}}" class="text-xs text-violet-600 hover:underline">Edit</a></td>
+        <td class="px-4 py-3 flex gap-3 items-center">
+          <a href="/admin/users/{{.ID}}" class="text-xs text-violet-600 hover:underline">Edit</a>
+          {{if and (ne .Role "admin") (ne .ID $.CurrentUserID)}}
+          <form method="POST" action="/admin/users/{{.ID}}/delete" onsubmit="return confirm('Delete this user?')">
+            <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
+            <button type="submit" class="text-xs text-red-400 hover:text-red-600">Delete</button>
+          </form>
+          {{end}}
+        </td>
       </tr>
       {{else}}
       <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 text-sm">No users found.</td></tr>

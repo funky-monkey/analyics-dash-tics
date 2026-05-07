@@ -22,6 +22,7 @@ type CMSRepository interface {
 	ListPages(ctx context.Context, limit, offset int) ([]*model.CMSPage, error)
 	ListPublishedByType(ctx context.Context, pageType string, limit, offset int) ([]*model.CMSPage, error)
 	SetPageStatus(ctx context.Context, id, status string, publishedAt *time.Time) error
+	DeletePage(ctx context.Context, id string) error
 }
 
 type pgCMSRepository struct {
@@ -159,6 +160,14 @@ func (r *pgCMSRepository) SetPageStatus(ctx context.Context, id, status string, 
 		id, status, publishedAt)
 	if err != nil {
 		return fmt.Errorf("cmsRepository.SetPageStatus: %w", err)
+	}
+	return nil
+}
+
+func (r *pgCMSRepository) DeletePage(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM cms_pages WHERE id=$1`, id)
+	if err != nil {
+		return fmt.Errorf("cmsRepository.DeletePage: %w", err)
 	}
 	return nil
 }

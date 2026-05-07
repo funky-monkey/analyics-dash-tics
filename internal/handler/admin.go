@@ -54,7 +54,12 @@ func (h *AdminHandler) Index(w http.ResponseWriter, r *http.Request) {
 
 // Users renders GET /admin/users.
 func (h *AdminHandler) Users(w http.ResponseWriter, r *http.Request) {
-	data := map[string]any{"ActiveNav": "users", "Users": []*model.User{}}
+	data := map[string]any{
+		"ActiveNav":     "users",
+		"Users":         []*model.User{},
+		"CurrentUserID": middleware.UserIDFromContext(r.Context()),
+		"CSRFToken":     csrfToken(r),
+	}
 	if h.repos != nil {
 		users, err := h.repos.Admin.ListAllUsers(r.Context(), 100, 0)
 		if err != nil {
@@ -114,7 +119,7 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actorID := middleware.UserIDFromContext(r.Context())
-	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "create_user", "user", user.ID, "")
+	auditLog(h.repos, r, actorID, "create_user", "user", user.ID)
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 
@@ -165,13 +170,53 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if err := h.repos.Users.SetActive(r.Context(), id, active); err != nil {
 		slog.Error("admin.UpdateUser", "error", err)
 	}
-	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "update_user", "user", id, "")
+	auditLog(h.repos, r, actorID, "update_user", "user", id)
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
+}
+
+// DeleteUser handles POST /admin/users/:id/delete — soft-deletes a non-admin user.
+func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	actorID := middleware.UserIDFromContext(r.Context())
+
+	if id == actorID {
+		http.Error(w, "cannot delete your own account", http.StatusForbidden)
+		return
+	}
+	target, err := h.repos.Users.GetByID(r.Context(), id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if target.Role == model.RoleAdmin {
+		http.Error(w, "cannot delete admin accounts", http.StatusForbidden)
+		return
+	}
+	if err := h.repos.Users.SetActive(r.Context(), id, false); err != nil {
+		slog.Error("admin.DeleteUser", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	auditLog(h.repos, r, actorID, "delete_user", "user", id)
+	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
+}
+
+// DeleteSite handles POST /admin/sites/:id/delete.
+func (h *AdminHandler) DeleteSite(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	actorID := middleware.UserIDFromContext(r.Context())
+	if err := h.repos.Sites.Delete(r.Context(), id); err != nil {
+		slog.Error("admin.DeleteSite", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	auditLog(h.repos, r, actorID, "delete_site", "site", id)
+	http.Redirect(w, r, "/admin/sites", http.StatusSeeOther)
 }
 
 // Sites renders GET /admin/sites.
 func (h *AdminHandler) Sites(w http.ResponseWriter, r *http.Request) {
-	data := map[string]any{"ActiveNav": "sites", "Sites": []*model.Site{}}
+	data := map[string]any{"ActiveNav": "sites", "Sites": []*model.Site{}, "CSRFToken": csrfToken(r)}
 	if h.repos != nil {
 		sites, err := h.repos.Admin.ListAllSites(r.Context(), 100, 0)
 		if err != nil {
@@ -195,6 +240,16 @@ func (h *AdminHandler) AuditLog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	h.renderAdmin(w, "audit.html", data)
+}
+
+// auditLog writes an audit entry, logging any error rather than silently discarding it.
+func auditLog(repos *repository.Repos, r *http.Request, actorID, action, resourceType, resourceID string) {
+	if repos == nil {
+		return
+	}
+	if err := repos.Admin.WriteAuditLog(r.Context(), actorID, action, resourceType, resourceID, ""); err != nil {
+		slog.Error("audit log write failed", "action", action, "error", err)
+	}
 }
 
 func (h *AdminHandler) renderAdmin(w http.ResponseWriter, name string, data any) {
