@@ -1,26 +1,42 @@
 {{define "chart-line"}}
 <div class="bg-white rounded-xl border border-gray-100 p-5 mb-6">
+  {{if .ChartTimes}}
   <div id="chart-timeseries" class="w-full" style="height:200px"></div>
+  {{else}}
+  <div class="flex items-center justify-center" style="height:200px">
+    <p class="text-sm text-gray-400">No data for this period yet.</p>
+  </div>
+  {{end}}
 </div>
 <script>
 (function() {
   var times = {{.ChartTimes}};
   var pageviews = {{.ChartPageviews}};
-  var el = document.getElementById('chart-timeseries');
-  if (typeof uPlot !== 'undefined' && times && times.length > 0 && el) {
+  if (!times || times.length === 0) return;
+  function render() {
+    var el = document.getElementById('chart-timeseries');
+    if (!el) return;
+    var w = el.getBoundingClientRect().width || el.offsetWidth || 800;
     var opts = {
-      width: el.offsetWidth || 800,
+      width:  w,
       height: 200,
+      cursor: { show: true },
       series: [
         {},
-        { label: "Pageviews", stroke: "#7c6af7", fill: "rgba(124,106,247,0.08)", width: 2 }
+        { label: "Pageviews", stroke: "#7c3aed", fill: "rgba(124,58,237,0.08)", width: 2 }
       ],
       axes: [
-        { stroke: "#d1d5db" },
-        { stroke: "#d1d5db" }
+        { stroke: "#9ca3af", ticks: { stroke: "#f3f4f6" }, grid: { stroke: "#f3f4f6" } },
+        { stroke: "#9ca3af", ticks: { stroke: "#f3f4f6" }, grid: { stroke: "#f3f4f6" } }
       ],
     };
     new uPlot(opts, [times, pageviews], el);
+  }
+  // Defer until paint so getBoundingClientRect returns real dimensions
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', render);
+  } else {
+    requestAnimationFrame(render);
   }
 })();
 </script>

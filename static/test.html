@@ -3,64 +3,185 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashtics tracking test</title>
-  <script
-    src="https://dash.local/static/script.js"
-    data-site="tk_0e910d975fbbd9c4"
-    async></script>
+  <title>Dashtics — tracking tester</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 80px auto; padding: 0 24px; color: #111; }
-    h1 { font-size: 1.5rem; margin-bottom: 8px; }
-    p  { color: #555; margin-bottom: 24px; }
-    button { padding: 10px 20px; background: #7c3aed; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-right: 8px; margin-bottom: 8px; }
-    button:hover { background: #6d28d9; }
-    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
-    #log { margin-top: 24px; font-size: 13px; color: #555; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; min-height: 60px; font-family: monospace; white-space: pre-line; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f9fafb; color: #111; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 48px 24px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 28px; width: 100%; max-width: 560px; margin-bottom: 16px; }
+    h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; }
+    .sub { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    textarea {
+      width: 100%; height: 90px; font-family: monospace; font-size: 13px;
+      border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px;
+      resize: vertical; outline: none; color: #111; background: #f9fafb;
+    }
+    textarea:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.15); background: #fff; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; background: #7c3aed; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .btn:hover { background: #6d28d9; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: #6b7280; border: 1px solid #e5e7eb; }
+    .btn-ghost:hover { background: #f3f4f6; color: #111; }
+    .events-label { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px; }
+    #log {
+      font-family: monospace; font-size: 12px; background: #0d1117; color: #e6edf3;
+      border-radius: 10px; padding: 14px 16px; min-height: 120px; max-height: 280px;
+      overflow-y: auto; line-height: 1.7; white-space: pre-wrap; word-break: break-all;
+    }
+    .log-ts  { color: #6e7681; }
+    .log-ok  { color: #7ee787; }
+    .log-err { color: #ff7b72; }
+    .log-evt { color: #79c0ff; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-red   { background: #fee2e2; color: #991b1b; }
+    .badge-gray  { background: #f3f4f6; color: #374151; }
+    #status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; color: #6b7280; }
+    #status-dot { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+    #status-dot.loaded  { background: #22c55e; }
+    #status-dot.error   { background: #ef4444; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
   </style>
 </head>
 <body>
 
-  <h1>Dashtics tracking test</h1>
-  <p>This page fires a <strong>pageview</strong> on load. Use the buttons below to fire custom events.</p>
+<div class="card">
+  <h1>Dashtics tracking tester</h1>
+  <p class="sub">Paste your <code>&lt;script&gt;</code> tag below to test it on this page.</p>
 
-  <button onclick="track('button_click', { label: 'primary_cta' })">Fire button_click</button>
-  <button onclick="track('signup_start', { plan: 'pro' })">Fire signup_start</button>
-  <button onclick="track('video_play', { title: 'demo' })">Fire video_play</button>
-  <button onclick="track('file_download', { file: 'brochure.pdf' })">Fire file_download</button>
-  <button onclick="window.location.href='?page=2'">Navigate (new pageview)</button>
+  <label for="snippet-input">Your tracking snippet</label>
+  <textarea id="snippet-input" spellcheck="false" placeholder='<script&#10;  src="https://dash.local/static/script.js"&#10;  data-site="tk_xxxx"&#10;  async></script>'></textarea>
 
-  <div id="log">Waiting for tracking script to load…</div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button class="btn" onclick="loadScript()">Load &amp; test</button>
+    <button class="btn btn-ghost" onclick="clearLog()">Clear log</button>
+  </div>
+</div>
 
-  <script>
-    function log(msg) {
-      var el = document.getElementById('log');
-      var ts = new Date().toLocaleTimeString();
-      el.textContent += '[' + ts + '] ' + msg + '\n';
+<div class="card">
+  <div id="status-row">
+    <div id="status-dot"></div>
+    <span id="status-text">Paste your snippet above and click Load &amp; test.</span>
+  </div>
+
+  <hr>
+
+  <div class="events-label">Fire custom events</div>
+  <div class="actions">
+    <button class="btn btn-ghost" onclick="fireEvent('button_click',{label:'primary_cta'})">button_click</button>
+    <button class="btn btn-ghost" onclick="fireEvent('signup_start',{plan:'pro'})">signup_start</button>
+    <button class="btn btn-ghost" onclick="fireEvent('video_play',{title:'demo'})">video_play</button>
+    <button class="btn btn-ghost" onclick="fireEvent('file_download',{file:'brochure.pdf'})">file_download</button>
+    <button class="btn btn-ghost" onclick="fireEvent('add_to_cart',{sku:'PRO-MONTHLY',price:29})">add_to_cart</button>
+  </div>
+
+  <hr>
+
+  <div class="events-label">Event log</div>
+  <div id="log"><span class="log-ts">—</span> waiting for script…</div>
+</div>
+
+<script>
+var scriptTag = null;
+
+function ts() {
+  return new Date().toLocaleTimeString('en', { hour12: false });
+}
+
+function logLine(cls, msg) {
+  var el = document.getElementById('log');
+  var line = document.createElement('div');
+  line.innerHTML = '<span class="log-ts">[' + ts() + ']</span> <span class="' + cls + '">' + msg + '</span>';
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  // Clear placeholder
+  if (el.firstChild && el.firstChild.querySelector && el.firstChild.querySelector('.log-ts') && el.firstChild.textContent.includes('waiting')) {
+    el.removeChild(el.firstChild);
+  }
+}
+
+function clearLog() {
+  document.getElementById('log').innerHTML = '';
+}
+
+function setStatus(state, msg) {
+  var dot  = document.getElementById('status-dot');
+  var text = document.getElementById('status-text');
+  dot.className = state; // 'loaded' | 'error' | ''
+  text.textContent = msg;
+}
+
+function loadScript() {
+  var raw = document.getElementById('snippet-input').value.trim();
+  if (!raw) { alert('Paste your tracking snippet first.'); return; }
+
+  // Parse src and data-site from the pasted snippet
+  var srcMatch      = raw.match(/src\s*=\s*["']([^"']+)["']/);
+  var dataSiteMatch = raw.match(/data-site\s*=\s*["']([^"']+)["']/);
+
+  if (!srcMatch) {
+    setStatus('error', 'Could not find src= in your snippet.');
+    logLine('log-err', 'ERROR: no src= attribute found in snippet');
+    return;
+  }
+
+  var src      = srcMatch[1];
+  var dataSite = dataSiteMatch ? dataSiteMatch[1] : '';
+
+  // Remove existing script if reloading
+  if (scriptTag) {
+    scriptTag.remove();
+    scriptTag = null;
+    window.analytics = undefined;
+  }
+
+  clearLog();
+  logLine('log-ts', 'Loading ' + src + ' …');
+  if (dataSite) logLine('log-ts', 'data-site: ' + dataSite);
+
+  setStatus('', 'Loading script…');
+
+  var s = document.createElement('script');
+  s.src = src;
+  if (dataSite) s.setAttribute('data-site', dataSite);
+  s.async = true;
+
+  s.onload = function() {
+    setStatus('loaded', 'Script loaded — site token: ' + (dataSite || '(none)'));
+    logLine('log-ok', 'script loaded ✓');
+    logLine('log-ok', 'pageview fired (load event)');
+  };
+
+  s.onerror = function() {
+    setStatus('error', 'Script failed to load — check the src URL');
+    logLine('log-err', 'ERROR: failed to load ' + src);
+    logLine('log-err', 'Check that your server is running and the URL is correct');
+  };
+
+  document.head.appendChild(s);
+  scriptTag = s;
+}
+
+function fireEvent(name, props) {
+  if (!window.analytics || !window.analytics.track) {
+    logLine('log-err', 'ERROR: analytics not ready — load the script first');
+    return;
+  }
+  window.analytics.track(name, props);
+  logLine('log-evt', 'fired: ' + name + ' ' + JSON.stringify(props));
+}
+
+// Pre-fill if there's a hash
+(function() {
+  try {
+    var h = decodeURIComponent(window.location.hash.slice(1));
+    if (h.startsWith('<script')) {
+      document.getElementById('snippet-input').value = h;
     }
-
-    function track(event, props) {
-      if (window.analytics && window.analytics.track) {
-        window.analytics.track(event, props);
-        log('fired: ' + event + ' ' + JSON.stringify(props));
-      } else {
-        log('ERROR: window.analytics not ready yet');
-      }
-    }
-
-    // Wait for script to load then confirm
-    var waited = 0;
-    var check = setInterval(function() {
-      waited += 100;
-      if (window.analytics) {
-        clearInterval(check);
-        log('tracking script loaded ✓ (site: ' + (window.analytics.siteToken || 'tk_0e910d975fbbd9c4') + ')');
-        log('pageview sent on load');
-      } else if (waited > 5000) {
-        clearInterval(check);
-        log('ERROR: script did not load after 5s — check network tab');
-      }
-    }, 100);
-  </script>
+  } catch(e) {}
+})();
+</script>
 
 </body>
 </html>

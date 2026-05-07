@@ -55,9 +55,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	siteID, err := ensureDemoSite(ctx, pool)
+	siteID, domain, err := resolveSeedSite(ctx, pool)
 	if err != nil {
-		slog.Error("ensureDemoSite", "error", err)
+		slog.Error("resolveSeedSite", "error", err)
 		os.Exit(1)
 	}
 
@@ -66,38 +66,47 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Info("seed complete — login with demo@dashtics.io / Demo1234567890!")
+	slog.Info("seed complete", "site", domain)
 }
 
-// ensureDemoSite creates the demo user + site if absent, returns the site UUID.
-func ensureDemoSite(ctx context.Context, pool *pgxpool.Pool) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte("Demo1234567890!"), bcrypt.DefaultCost)
-	if err != nil {
-		return "", fmt.Errorf("bcrypt: %w", err)
+// resolveSeedSite picks the site to seed into:
+//  1. If a site already exists, use the most recently created one.
+//  2. If no sites exist, create the demo user + acme.io site.
+//
+// Returns (siteID, domain, error).
+func resolveSeedSite(ctx context.Context, pool *pgxpool.Pool) (string, string, error) {
+	var siteID, domain string
+	err := pool.QueryRow(ctx,
+		`SELECT id, domain FROM sites ORDER BY created_at DESC LIMIT 1`).
+		Scan(&siteID, &domain)
+	if err == nil {
+		slog.Info("seeding existing site", "id", siteID, "domain", domain)
+		return siteID, domain, nil
 	}
 
+	// No sites — create demo account
+	slog.Info("no sites found, creating demo account")
+	hash, err := bcrypt.GenerateFromPassword([]byte("Demo1234567890!"), bcrypt.DefaultCost)
+	if err != nil {
+		return "", "", fmt.Errorf("bcrypt: %w", err)
+	}
 	var userID string
-	err = pool.QueryRow(ctx,
+	if err := pool.QueryRow(ctx,
 		`INSERT INTO users (email, password_hash, role, name, is_active)
 		 VALUES ('demo@dashtics.io', $1, 'admin', 'Demo User', true)
 		 ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash
-		 RETURNING id`, string(hash)).Scan(&userID)
-	if err != nil {
-		return "", fmt.Errorf("upsert user: %w", err)
+		 RETURNING id`, string(hash)).Scan(&userID); err != nil {
+		return "", "", fmt.Errorf("upsert user: %w", err)
 	}
-	slog.Info("user ready", "id", userID, "email", "demo@dashtics.io")
-
-	var siteID string
-	err = pool.QueryRow(ctx,
+	if err := pool.QueryRow(ctx,
 		`INSERT INTO sites (owner_id, name, domain, token, timezone)
 		 VALUES ($1, 'Acme SaaS', 'acme.io', 'tk_demo_acme', 'Europe/Amsterdam')
 		 ON CONFLICT (token) DO UPDATE SET owner_id = EXCLUDED.owner_id
-		 RETURNING id`, userID).Scan(&siteID)
-	if err != nil {
-		return "", fmt.Errorf("upsert site: %w", err)
+		 RETURNING id`, userID).Scan(&siteID); err != nil {
+		return "", "", fmt.Errorf("upsert site: %w", err)
 	}
-	slog.Info("site ready", "id", siteID, "domain", "acme.io")
-	return siteID, nil
+	slog.Info("demo site created", "domain", "acme.io", "login", "demo@dashtics.io / Demo1234567890!")
+	return siteID, "acme.io", nil
 }
 
 // seedEvents deletes old seed data and inserts fresh events.
