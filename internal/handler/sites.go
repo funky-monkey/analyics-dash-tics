@@ -149,6 +149,70 @@ func (h *SitesHandler) CheckTracking(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Settings renders GET /sites/:siteID/settings.
+func (h *SitesHandler) Settings(w http.ResponseWriter, r *http.Request) {
+	siteID := r.PathValue("siteID")
+	if h.repos == nil {
+		http.NotFound(w, r)
+		return
+	}
+	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	var csrf string
+	if c, err := r.Cookie("csrf_token"); err == nil {
+		csrf = c.Value
+	}
+	h.renderTemplate(w, "settings.html", map[string]any{
+		"SiteID":           siteID,
+		"SiteDomain":       site.Domain,
+		"SiteBaseURL":      "/sites/" + siteID,
+		"Site":             site,
+		"ActiveNav":        "settings",
+		"Period":           "30d",
+		"AvailablePeriods": []struct{ Value, Label string }{},
+		"CSRFToken":        csrf,
+		"Updated":          r.URL.Query().Get("updated") == "1",
+	})
+}
+
+// UpdateSite handles POST /sites/:siteID/settings.
+func (h *SitesHandler) UpdateSite(w http.ResponseWriter, r *http.Request) {
+	siteID := r.PathValue("siteID")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	timezone := strings.TrimSpace(r.FormValue("timezone"))
+	if name == "" {
+		http.Error(w, "name required", http.StatusUnprocessableEntity)
+		return
+	}
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	if err := h.repos.Sites.Update(r.Context(), &model.Site{ID: siteID, Name: name, Timezone: timezone}); err != nil {
+		slog.Error("sites.UpdateSite", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/sites/"+siteID+"/settings?updated=1", http.StatusSeeOther)
+}
+
+// DeleteSite handles POST /sites/:siteID/delete.
+func (h *SitesHandler) DeleteSite(w http.ResponseWriter, r *http.Request) {
+	siteID := r.PathValue("siteID")
+	if err := h.repos.Sites.Delete(r.Context(), siteID); err != nil {
+		slog.Error("sites.DeleteSite", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
 func (h *SitesHandler) renderTemplate(w http.ResponseWriter, name string, data any) {
 	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")

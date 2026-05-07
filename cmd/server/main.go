@@ -132,6 +132,9 @@ func main() {
 		r.Get("/sites/{siteID}/audience", dashHandler.Audience)
 		r.Get("/sites/{siteID}/events", dashHandler.Events)
 		r.Get("/sites/{siteID}/funnels", dashHandler.Funnels)
+		r.Get("/sites/{siteID}/settings", sitesHandler.Settings)
+		r.Post("/sites/{siteID}/settings", sitesHandler.UpdateSite)
+		r.Post("/sites/{siteID}/delete", sitesHandler.DeleteSite)
 	})
 
 	// Admin routes — role=admin required
