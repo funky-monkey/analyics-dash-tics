@@ -5,7 +5,7 @@
 {{if .Sites}}
 <div class="grid grid-cols-3 gap-4">
   {{range .Sites}}
-  <a href="/sites/{{.ID}}/overview" class="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-sm transition-shadow group">
+  <a href="/sites/{{.Domain | domainSlug}}/overview" class="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-sm transition-shadow group">
     <div class="flex items-center gap-3 mb-3">
       <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
         <span class="text-violet-600 text-xs font-bold">{{slice .Domain 0 1}}</span>

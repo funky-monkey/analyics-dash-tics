@@ -105,17 +105,16 @@ func (h *SitesHandler) CreateSite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/sites/"+site.ID+"/setup", http.StatusSeeOther)
+	http.Redirect(w, r, "/sites/"+DomainSlug(site.Domain)+"/setup", http.StatusSeeOther)
 }
 
 // Setup renders GET /sites/:siteID/setup — the post-creation onboarding page.
 func (h *SitesHandler) Setup(w http.ResponseWriter, r *http.Request) {
-	siteID := r.PathValue("siteID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
 	}
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -129,47 +128,52 @@ func (h *SitesHandler) Setup(w http.ResponseWriter, r *http.Request) {
 // CheckTracking handles GET /sites/:siteID/check-tracking — returns JSON indicating
 // whether any events have been received for this site in the last 30 minutes.
 func (h *SitesHandler) CheckTracking(w http.ResponseWriter, r *http.Request) {
-	siteID := r.PathValue("siteID")
 	if h.repos == nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"detected":false}`))
+		w.Write([]byte(`{"detected":false}`)) //nolint:errcheck
+		return
+	}
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"detected":false}`)) //nolint:errcheck
 		return
 	}
 	from := time.Now().Add(-30 * time.Minute)
-	count, err := h.repos.Events.CountBySite(r.Context(), siteID, from, time.Now())
+	count, err := h.repos.Events.CountBySite(r.Context(), site.ID, from, time.Now())
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"detected":false}`))
+		w.Write([]byte(`{"detected":false}`)) //nolint:errcheck
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if count > 0 {
-		w.Write([]byte(`{"detected":true}`))
+		w.Write([]byte(`{"detected":true}`)) //nolint:errcheck
 	} else {
-		w.Write([]byte(`{"detected":false}`))
+		w.Write([]byte(`{"detected":false}`)) //nolint:errcheck
 	}
 }
 
 // Settings renders GET /sites/:siteID/settings.
 func (h *SitesHandler) Settings(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
 	}
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
+	slug := DomainSlug(site.Domain)
 	var csrf string
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		csrf = c.Value
 	}
 	h.renderDash(w, "settings.html", map[string]any{
-		"SiteID":           siteID,
+		"SiteID":           slug,
 		"SiteDomain":       site.Domain,
-		"SiteBaseURL":      "/sites/" + siteID,
+		"SiteBaseURL":      "/sites/" + slug,
 		"Site":             site,
 		"ActiveNav":        "settings",
 		"Period":           "30d",
@@ -181,7 +185,11 @@ func (h *SitesHandler) Settings(w http.ResponseWriter, r *http.Request) {
 
 // UpdateSite handles POST /sites/:siteID/settings.
 func (h *SitesHandler) UpdateSite(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
@@ -195,18 +203,22 @@ func (h *SitesHandler) UpdateSite(w http.ResponseWriter, r *http.Request) {
 	if timezone == "" {
 		timezone = "UTC"
 	}
-	if err := h.repos.Sites.Update(r.Context(), &model.Site{ID: siteID, Name: name, Timezone: timezone}); err != nil {
+	if err := h.repos.Sites.Update(r.Context(), &model.Site{ID: site.ID, Name: name, Timezone: timezone}); err != nil {
 		slog.Error("sites.UpdateSite", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/sites/"+siteID+"/settings?updated=1", http.StatusSeeOther)
+	http.Redirect(w, r, "/sites/"+DomainSlug(site.Domain)+"/settings?updated=1", http.StatusSeeOther)
 }
 
 // DeleteSite handles POST /sites/:siteID/delete.
 func (h *SitesHandler) DeleteSite(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
-	if err := h.repos.Sites.Delete(r.Context(), siteID); err != nil {
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := h.repos.Sites.Delete(r.Context(), site.ID); err != nil {
 		slog.Error("sites.DeleteSite", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -216,29 +228,29 @@ func (h *SitesHandler) DeleteSite(w http.ResponseWriter, r *http.Request) {
 
 // GoalsList renders GET /sites/:siteID/goals.
 func (h *SitesHandler) GoalsList(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
 	}
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	goals, err := h.repos.Goals.ListBySite(r.Context(), siteID)
+	goals, err := h.repos.Goals.ListBySite(r.Context(), site.ID)
 	if err != nil {
 		slog.Error("sites.GoalsList", "error", err)
 		goals = nil
 	}
+	slug := DomainSlug(site.Domain)
 	var csrf string
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		csrf = c.Value
 	}
 	h.renderDash(w, "goals.html", map[string]any{
-		"SiteID":           siteID,
+		"SiteID":           slug,
 		"SiteDomain":       site.Domain,
-		"SiteBaseURL":      "/sites/" + siteID,
+		"SiteBaseURL":      "/sites/" + slug,
 		"ActiveNav":        "settings",
 		"Period":           "30d",
 		"AvailablePeriods": []struct{ Value, Label string }{},
@@ -249,7 +261,11 @@ func (h *SitesHandler) GoalsList(w http.ResponseWriter, r *http.Request) {
 
 // CreateGoal handles POST /sites/:siteID/goals.
 func (h *SitesHandler) CreateGoal(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
@@ -264,25 +280,29 @@ func (h *SitesHandler) CreateGoal(w http.ResponseWriter, r *http.Request) {
 	if goalType != "pageview" && goalType != "event" && goalType != "outbound" {
 		goalType = "pageview"
 	}
-	g := &model.Goal{SiteID: siteID, Name: name, Type: goalType, Value: value}
+	g := &model.Goal{SiteID: site.ID, Name: name, Type: goalType, Value: value}
 	if err := h.repos.Goals.Create(r.Context(), g); err != nil {
 		slog.Error("sites.CreateGoal", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/sites/"+siteID+"/goals", http.StatusSeeOther)
+	http.Redirect(w, r, "/sites/"+DomainSlug(site.Domain)+"/goals", http.StatusSeeOther)
 }
 
 // DeleteGoal handles POST /sites/:siteID/goals/:goalID/delete.
 func (h *SitesHandler) DeleteGoal(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
 	goalID := chi.URLParam(r, "goalID")
-	if err := h.repos.Goals.Delete(r.Context(), goalID, siteID); err != nil {
+	if err := h.repos.Goals.Delete(r.Context(), goalID, site.ID); err != nil {
 		slog.Error("sites.DeleteGoal", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/sites/"+siteID+"/goals", http.StatusSeeOther)
+	http.Redirect(w, r, "/sites/"+DomainSlug(site.Domain)+"/goals", http.StatusSeeOther)
 }
 
 func (h *SitesHandler) renderTemplate(w http.ResponseWriter, name string, data any) {

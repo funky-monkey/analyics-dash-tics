@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -54,7 +55,7 @@ func (h *DashboardHandler) Aggregate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(sites) == 1 {
-		http.Redirect(w, r, "/sites/"+sites[0].ID+"/overview", http.StatusSeeOther)
+		http.Redirect(w, r, "/sites/"+domainSlug(sites[0].Domain)+"/overview", http.StatusSeeOther)
 		return
 	}
 
@@ -67,7 +68,6 @@ func (h *DashboardHandler) Aggregate(w http.ResponseWriter, r *http.Request) {
 
 // Overview renders GET /sites/:siteID/overview.
 func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
 	userID := middleware.UserIDFromContext(r.Context())
 
 	if h.repos == nil {
@@ -75,14 +75,14 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
 	sites, err := h.repos.Sites.ListByOwner(r.Context(), userID)
-	if err != nil || !siteInList(sites, siteID) {
+	if err != nil || !siteInList(sites, site.ID) {
 		http.NotFound(w, r)
 		return
 	}
@@ -92,22 +92,23 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		period = "30d"
 	}
 	from, to := service.DateRange(period)
+	slug := domainSlug(site.Domain)
 
-	summary, err := h.repos.Stats.GetSummary(r.Context(), siteID, from, to)
+	summary, err := h.repos.Stats.GetSummary(r.Context(), site.ID, from, to)
 	if err != nil {
 		slog.Error("overview: summary", "error", err)
 		summary = &model.StatsSummary{}
 	}
 
-	timeseries, _ := h.repos.Stats.GetTimeSeries(r.Context(), siteID, from, to)
-	pages, _ := h.repos.Stats.GetTopPages(r.Context(), siteID, from, to, 10)
-	sources, _ := h.repos.Stats.GetTopSources(r.Context(), siteID, from, to, 10)
+	timeseries, _ := h.repos.Stats.GetTimeSeries(r.Context(), site.ID, from, to)
+	pages, _ := h.repos.Stats.GetTopPages(r.Context(), site.ID, from, to, 10)
+	sources, _ := h.repos.Stats.GetTopSources(r.Context(), site.ID, from, to, 10)
 
 	chartTimes, chartPageviews := timeSeriesJSON(timeseries)
 
 	h.renderDash(w, "overview.html", map[string]any{
-		"SiteID": siteID, "SiteDomain": site.Domain,
-		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "overview",
+		"SiteID": slug, "SiteDomain": site.Domain,
+		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "overview",
 		"Period": period, "AvailablePeriods": periodsAvailable,
 		"Summary":    summary,
 		"ChartTimes": template.JS(chartTimes), "ChartPageviews": template.JS(chartPageviews), //nolint:gosec // G203: server-generated JSON, not user input
@@ -117,68 +118,68 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 
 // Pages renders GET /sites/:siteID/pages.
 func (h *DashboardHandler) Pages(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
 	}
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 	period := periodParam(r)
 	from, to := service.DateRange(period)
-	pages, _ := h.repos.Stats.GetTopPages(r.Context(), siteID, from, to, 50)
+	slug := domainSlug(site.Domain)
+	pages, _ := h.repos.Stats.GetTopPages(r.Context(), site.ID, from, to, 50)
 	h.renderDash(w, "pages.html", map[string]any{
-		"SiteID": siteID, "SiteDomain": site.Domain,
-		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "pages",
+		"SiteID": slug, "SiteDomain": site.Domain,
+		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "pages",
 		"Period": period, "AvailablePeriods": periodsAvailable, "Pages": pages,
 	})
 }
 
 // Sources renders GET /sites/:siteID/sources.
 func (h *DashboardHandler) Sources(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
 	}
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 	period := periodParam(r)
 	from, to := service.DateRange(period)
-	sources, _ := h.repos.Stats.GetTopSources(r.Context(), siteID, from, to, 50)
+	slug := domainSlug(site.Domain)
+	sources, _ := h.repos.Stats.GetTopSources(r.Context(), site.ID, from, to, 50)
 	h.renderDash(w, "sources.html", map[string]any{
-		"SiteID": siteID, "SiteDomain": site.Domain,
-		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "sources",
+		"SiteID": slug, "SiteDomain": site.Domain,
+		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "sources",
 		"Period": period, "AvailablePeriods": periodsAvailable, "Sources": sources,
 	})
 }
 
 // Audience renders GET /sites/:siteID/audience.
 func (h *DashboardHandler) Audience(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
 	}
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 	period := periodParam(r)
 	from, to := service.DateRange(period)
-	countries, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), siteID, "country", from, to, 20)
-	devices, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), siteID, "device_type", from, to, 5)
-	browsers, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), siteID, "browser", from, to, 10)
+	slug := domainSlug(site.Domain)
+	countries, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "country", from, to, 20)
+	devices, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "device_type", from, to, 5)
+	browsers, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "browser", from, to, 10)
 	h.renderDash(w, "audience.html", map[string]any{
-		"SiteID": siteID, "SiteDomain": site.Domain,
-		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "audience",
+		"SiteID": slug, "SiteDomain": site.Domain,
+		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "audience",
 		"Period": period, "AvailablePeriods": periodsAvailable,
 		"Countries": countries, "Devices": devices, "Browsers": browsers,
 	})
@@ -186,28 +187,28 @@ func (h *DashboardHandler) Audience(w http.ResponseWriter, r *http.Request) {
 
 // Events renders GET /sites/:siteID/events.
 func (h *DashboardHandler) Events(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
 	}
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 	period := periodParam(r)
 	from, to := service.DateRange(period)
+	slug := domainSlug(site.Domain)
 
-	events, err := h.repos.Events.ListCustomEvents(r.Context(), siteID, from, to, 50)
+	events, err := h.repos.Events.ListCustomEvents(r.Context(), site.ID, from, to, 50)
 	if err != nil {
 		slog.Error("dashboard.Events", "error", err)
 		events = nil
 	}
 
 	h.renderDash(w, "events.html", map[string]any{
-		"SiteID": siteID, "SiteDomain": site.Domain,
-		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "events",
+		"SiteID": slug, "SiteDomain": site.Domain,
+		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "events",
 		"Period": period, "AvailablePeriods": periodsAvailable,
 		"Events": events,
 	})
@@ -215,28 +216,28 @@ func (h *DashboardHandler) Events(w http.ResponseWriter, r *http.Request) {
 
 // Funnels renders GET /sites/:siteID/funnels.
 func (h *DashboardHandler) Funnels(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
 	}
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	funnels, err := h.repos.Funnels.ListBySite(r.Context(), siteID)
+	funnels, err := h.repos.Funnels.ListBySite(r.Context(), site.ID)
 	if err != nil {
 		slog.Error("dashboard.Funnels", "error", err)
 		funnels = nil
 	}
+	slug := domainSlug(site.Domain)
 	var csrf string
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		csrf = c.Value
 	}
 	h.renderDash(w, "funnels.html", map[string]any{
-		"SiteID": siteID, "SiteDomain": site.Domain,
-		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "funnels",
+		"SiteID": slug, "SiteDomain": site.Domain,
+		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "funnels",
 		"Period": "30d", "AvailablePeriods": periodsAvailable,
 		"Funnels": funnels, "CSRFToken": csrf,
 	})
@@ -245,7 +246,11 @@ func (h *DashboardHandler) Funnels(w http.ResponseWriter, r *http.Request) {
 // CreateFunnel handles POST /sites/:siteID/funnels.
 // Form fields: name, step_name[] (repeating), step_type[] (repeating), step_value[] (repeating).
 func (h *DashboardHandler) CreateFunnel(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
@@ -284,49 +289,54 @@ func (h *DashboardHandler) CreateFunnel(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "at least 2 valid steps required", http.StatusUnprocessableEntity)
 		return
 	}
-	f := &model.Funnel{SiteID: siteID, Name: name}
+	f := &model.Funnel{SiteID: site.ID, Name: name}
 	if err := h.repos.Funnels.Create(r.Context(), f, steps); err != nil {
 		slog.Error("dashboard.CreateFunnel", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/sites/"+siteID+"/funnels/"+f.ID, http.StatusSeeOther)
+	slug := domainSlug(site.Domain)
+	http.Redirect(w, r, "/sites/"+slug+"/funnels/"+f.ID, http.StatusSeeOther)
 }
 
 // DeleteFunnel handles POST /sites/:siteID/funnels/:funnelID/delete.
 func (h *DashboardHandler) DeleteFunnel(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
 	funnelID := chi.URLParam(r, "funnelID")
-	if err := h.repos.Funnels.Delete(r.Context(), funnelID, siteID); err != nil {
+	if err := h.repos.Funnels.Delete(r.Context(), funnelID, site.ID); err != nil {
 		slog.Error("dashboard.DeleteFunnel", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/sites/"+siteID+"/funnels", http.StatusSeeOther)
+	http.Redirect(w, r, "/sites/"+domainSlug(site.Domain)+"/funnels", http.StatusSeeOther)
 }
 
 // FunnelDetail renders GET /sites/:siteID/funnels/:funnelID.
 func (h *DashboardHandler) FunnelDetail(w http.ResponseWriter, r *http.Request) {
-	siteID := chi.URLParam(r, "siteID")
 	funnelID := chi.URLParam(r, "funnelID")
 	if h.repos == nil {
 		http.NotFound(w, r)
 		return
 	}
-	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	funnel, steps, err := h.repos.Funnels.GetWithSteps(r.Context(), funnelID, siteID)
+	funnel, steps, err := h.repos.Funnels.GetWithSteps(r.Context(), funnelID, site.ID)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 	period := periodParam(r)
 	from, to := service.DateRange(period)
+	slug := domainSlug(site.Domain)
 
-	counts, err := h.repos.Funnels.GetDropOff(r.Context(), siteID, steps, from, to)
+	counts, err := h.repos.Funnels.GetDropOff(r.Context(), site.ID, steps, from, to)
 	if err != nil {
 		slog.Error("dashboard.FunnelDetail", "error", err)
 		counts = make([]int64, len(steps))
@@ -339,8 +349,8 @@ func (h *DashboardHandler) FunnelDetail(w http.ResponseWriter, r *http.Request) 
 		csrf = c.Value
 	}
 	h.renderDash(w, "funnel-detail.html", map[string]any{
-		"SiteID": siteID, "SiteDomain": site.Domain,
-		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "funnels",
+		"SiteID": slug, "SiteDomain": site.Domain,
+		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "funnels",
 		"Period": period, "AvailablePeriods": periodsAvailable,
 		"Result": result, "CSRFToken": csrf,
 	})
@@ -361,6 +371,25 @@ func (h *DashboardHandler) renderDash(w http.ResponseWriter, name string, data a
 	if err := t.ExecuteTemplate(w, "dashboard.html", data); err != nil {
 		slog.Error("render dashboard template", "name", name, "error", err)
 	}
+}
+
+// DomainSlug converts a domain to a URL-safe slug: dots become dashes.
+// "acme.io" → "acme-io", "sub.acme.io" → "sub-acme-io"
+// Exported so it can be registered as a template FuncMap function.
+func DomainSlug(domain string) string {
+	return strings.ReplaceAll(domain, ".", "-")
+}
+
+func domainSlug(domain string) string { return DomainSlug(domain) }
+
+// resolveSite looks up a site by either its UUID or its domain slug.
+// UUID format (36 chars, hyphens at positions 8/13/18/23) goes to GetByID;
+// everything else goes to GetBySlug.
+func resolveSite(ctx context.Context, repos *repository.Repos, param string) (*model.Site, error) {
+	if len(param) == 36 && param[8] == '-' && param[13] == '-' && param[18] == '-' {
+		return repos.Sites.GetByID(ctx, param)
+	}
+	return repos.Sites.GetBySlug(ctx, param)
 }
 
 func siteInList(sites []*model.Site, id string) bool {

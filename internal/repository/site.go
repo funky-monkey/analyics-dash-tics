@@ -15,6 +15,9 @@ type SiteRepository interface {
 	Create(ctx context.Context, s *model.Site) error
 	GetByID(ctx context.Context, id string) (*model.Site, error)
 	GetByToken(ctx context.Context, token string) (*model.Site, error)
+	// GetBySlug looks up a site by its domain slug (dots replaced with dashes),
+	// e.g. "acme-io" matches domain "acme.io".
+	GetBySlug(ctx context.Context, slug string) (*model.Site, error)
 	ListByOwner(ctx context.Context, ownerID string) ([]*model.Site, error)
 	Delete(ctx context.Context, id string) error
 	Update(ctx context.Context, s *model.Site) error
@@ -63,6 +66,21 @@ func (r *pgSiteRepository) GetByToken(ctx context.Context, token string) (*model
 	}
 	if err != nil {
 		return nil, fmt.Errorf("siteRepository.GetByToken: %w", err)
+	}
+	return s, nil
+}
+
+func (r *pgSiteRepository) GetBySlug(ctx context.Context, slug string) (*model.Site, error) {
+	s := &model.Site{}
+	err := r.pool.QueryRow(ctx, `
+		SELECT id, owner_id, name, domain, token, timezone, created_at
+		FROM sites WHERE replace(domain, '.', '-') = $1
+	`, slug).Scan(&s.ID, &s.OwnerID, &s.Name, &s.Domain, &s.Token, &s.Timezone, &s.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("siteRepository.GetBySlug: %w", err)
 	}
 	return s, nil
 }

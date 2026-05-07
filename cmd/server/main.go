@@ -189,6 +189,7 @@ func buildTemplateMap(basePath, pagesRoot string) (map[string]*template.Template
 	funcs := template.FuncMap{
 		"formatNumber":   handler.FormatNumber,
 		"formatDuration": handler.FormatDuration,
+		"domainSlug":     handler.DomainSlug,
 		"slice": func(s string, i, j int) string {
 			if i >= len(s) {
 				return ""
