@@ -596,6 +596,25 @@ func (h *DashboardHandler) FunnelDetail(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// ActiveVisitors handles GET /sites/:siteID/active-visitors — returns JSON count
+// of distinct visitors with an event in the last 5 minutes.
+func (h *DashboardHandler) ActiveVisitors(w http.ResponseWriter, r *http.Request) {
+	if h.repos == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"active":0}`)) //nolint:errcheck
+		return
+	}
+	site, err := resolveSite(r.Context(), h.repos, chi.URLParam(r, "siteID"))
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"active":0}`)) //nolint:errcheck
+		return
+	}
+	count, _ := h.repos.Stats.GetActiveVisitors(r.Context(), site.ID, 5)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"active":%d}`, count) //nolint:errcheck
+}
+
 func (h *DashboardHandler) renderDash(w http.ResponseWriter, r *http.Request, name string, data any) {
 	injectNonce(r, data)
 	if h.tmpls == nil {

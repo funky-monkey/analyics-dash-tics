@@ -54,6 +54,7 @@
       <span class="text-sm font-medium text-gray-700 flex items-center gap-3">
         <span class="w-2 h-2 bg-green-400 rounded-full inline-block"></span>
         {{.SiteDomain}}
+        <span id="active-count" class="text-xs text-green-600 font-medium" style="display:none"></span>
         <a href="/account/sites/new" class="text-xs text-violet-600 hover:underline font-normal">+ Add site</a>
       </span>
       <div class="flex items-center gap-1">
@@ -69,5 +70,29 @@
       {{block "content" .}}{{end}}
     </main>
   </div>
+
+<script nonce="{{.Nonce}}">
+(function() {
+  var siteBase = '{{.SiteBaseURL}}';
+  if (!siteBase || siteBase === '/dashboard') return;
+  function poll() {
+    fetch(siteBase + '/active-visitors')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var el = document.getElementById('active-count');
+        if (!el) return;
+        if (d.active > 0) {
+          el.textContent = d.active + ' active now';
+          el.style.display = '';
+        } else {
+          el.style.display = 'none';
+        }
+      })
+      .catch(function() {});
+  }
+  poll();
+  setInterval(poll, 30000);
+})();
+</script>
 </body>
 </html>

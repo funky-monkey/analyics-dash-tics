@@ -139,6 +139,7 @@ func main() {
 		r.Post("/sites/{siteID}/funnels", dashHandler.CreateFunnel)
 		r.Post("/sites/{siteID}/funnels/{funnelID}/delete", dashHandler.DeleteFunnel)
 		r.Get("/sites/{siteID}/funnels/{funnelID}", dashHandler.FunnelDetail)
+		r.Get("/sites/{siteID}/active-visitors", dashHandler.ActiveVisitors)
 		r.Get("/sites/{siteID}/settings", sitesHandler.Settings)
 		r.Post("/sites/{siteID}/settings", sitesHandler.UpdateSite)
 		r.Post("/sites/{siteID}/delete", sitesHandler.DeleteSite)
