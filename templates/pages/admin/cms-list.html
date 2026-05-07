@@ -19,7 +19,11 @@
       <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
         <td class="px-4 py-3 font-medium text-gray-900">{{.Title}}</td>
         <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-600">{{.Type}}</span></td>
-        <td class="px-4 py-3">{{if eq .Status "published"}}<span class="text-green-600 text-xs font-medium">Published</span>{{else}}<span class="text-gray-400 text-xs">Draft</span>{{end}}</td>
+        <td class="px-4 py-3">
+          {{if eq .Status "published"}}<span class="text-green-600 text-xs font-medium">Published</span>
+          {{else if .PublishedAt}}<span class="text-blue-600 text-xs font-medium">Scheduled</span>
+          {{else}}<span class="text-gray-400 text-xs">Draft</span>{{end}}
+        </td>
         <td class="px-4 py-3 text-gray-400 text-xs">{{if .PublishedAt}}{{.PublishedAt.Format "2006-01-02"}}{{else}}—{{end}}</td>
         <td class="px-4 py-3 flex gap-3">
           <a href="/admin/cms/{{.ID}}/edit" class="text-xs text-violet-600 hover:underline">Edit</a>

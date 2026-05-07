@@ -99,10 +99,15 @@ func (r *pgCMSRepository) GetPageByID(ctx context.Context, id string) (*model.CM
 }
 
 func (r *pgCMSRepository) GetPageBySlug(ctx context.Context, slug string) (*model.CMSPage, error) {
+	// A page is publicly visible when:
+	//   status='published'  — published immediately (published_at may be null or in the past)
+	//   OR published_at is set and <= NOW() — scheduled post whose time has arrived
 	return r.scanOnePage(r.pool.QueryRow(ctx, `
 		SELECT id,layout_id,author_id,title,slug,type,content_html,excerpt,
 		       cover_image_url,meta_title,meta_description,status,published_at,created_at,updated_at
-		FROM cms_pages WHERE slug=$1 AND status='published'`, slug))
+		FROM cms_pages
+		WHERE slug=$1
+		  AND (status='published' OR (published_at IS NOT NULL AND published_at <= NOW()))`, slug))
 }
 
 func (r *pgCMSRepository) scanOnePage(row pgx.Row) (*model.CMSPage, error) {
@@ -138,8 +143,9 @@ func (r *pgCMSRepository) ListPublishedByType(ctx context.Context, pageType stri
 		SELECT id,layout_id,author_id,title,slug,type,content_html,excerpt,
 		       cover_image_url,meta_title,meta_description,status,published_at,created_at,updated_at
 		FROM cms_pages
-		WHERE type=$1 AND status='published'
-		ORDER BY published_at DESC LIMIT $2 OFFSET $3`, pageType, limit, offset)
+		WHERE type=$1
+		  AND (status='published' OR (published_at IS NOT NULL AND published_at <= NOW()))
+		ORDER BY COALESCE(published_at, created_at) DESC LIMIT $2 OFFSET $3`, pageType, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("cmsRepository.ListPublishedByType: %w", err)
 	}

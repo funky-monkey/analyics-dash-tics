@@ -1,67 +1,258 @@
 {{template "admin.html" .}}
-{{define "title"}}{{if .Page.ID}}Edit page{{else}}New page{{end}} — Admin{{end}}
+{{define "title"}}{{if .Page.ID}}Edit — {{.Page.Title}}{{else}}New page{{end}} — Admin{{end}}
 {{define "head"}}
 <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.8/dist/trix.css">
 <script type="text/javascript" src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js"></script>
+<style>
+  /* Make Trix feel like a real editor */
+  trix-editor {
+    border: none !important;
+    outline: none !important;
+    padding: 1.5rem !important;
+    min-height: 480px;
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #111827;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  }
+  trix-toolbar .trix-button-group {
+    border-color: #e5e7eb;
+    margin-bottom: 0;
+  }
+  trix-toolbar .trix-button {
+    border-bottom: none;
+    color: #6b7280;
+  }
+  trix-toolbar .trix-button.trix-active {
+    color: #7c6af7;
+    background: #f5f3ff;
+  }
+  trix-toolbar .trix-button:hover {
+    color: #374151;
+    background: #f9fafb;
+  }
+  trix-toolbar {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f0f0f8 !important;
+    background: #fafafa;
+    border-radius: 0.75rem 0.75rem 0 0;
+  }
+  .trix-content h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 0.75rem; }
+  .trix-content h2 { font-size: 1.375rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  .trix-content p { margin-bottom: 1rem; }
+  .trix-content blockquote {
+    border-left: 3px solid #7c6af7;
+    padding-left: 1rem;
+    color: #6b7280;
+    font-style: italic;
+    margin: 1rem 0;
+  }
+  .trix-content pre {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    font-size: 0.875rem;
+    overflow-x: auto;
+  }
+</style>
 {{end}}
 {{define "content"}}
-<h1 class="text-2xl font-bold text-gray-900 mb-8">{{if .Page.ID}}Edit page{{else}}New page{{end}}</h1>
+
 {{if .Error}}<div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{{.Error}}</div>{{end}}
-<form method="POST" action="{{if .Page.ID}}/admin/cms/{{.Page.ID}}/edit{{else}}/admin/cms/new{{end}}" class="space-y-5" id="cms-form">
+
+<form method="POST" action="{{if .Page.ID}}/admin/cms/{{.Page.ID}}/edit{{else}}/admin/cms/new{{end}}"
+      id="cms-form" class="flex gap-6 items-start">
+
   <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
   <input type="hidden" name="content_html" id="content_html_input">
-  <div class="grid grid-cols-2 gap-4">
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-      <input type="text" name="title" value="{{.Page.Title}}" required class="input">
+  <input type="hidden" name="action" id="form_action" value="draft">
+
+  {{/* ── Main editor column ── */}}
+  <div class="flex-1 min-w-0">
+
+    {{/* Title */}}
+    <input type="text" name="title" id="title-input"
+           value="{{.Page.Title}}"
+           placeholder="Page title…"
+           required
+           class="w-full text-3xl font-bold text-gray-900 placeholder-gray-300 border-0 outline-none mb-4 bg-transparent"
+           oninput="maybeAutoSlug(this.value)">
+
+    {{/* Trix editor */}}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+      <input id="trix_content" type="hidden" name="trix_content" value="{{.Page.ContentHTML}}">
+      <trix-editor input="trix_content"></trix-editor>
     </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-      <input type="text" name="slug" value="{{.Page.Slug}}" required pattern="[a-z0-9\-]+" class="input">
-      <p class="text-xs text-gray-400 mt-1">Lowercase, numbers, hyphens only</p>
-    </div>
+
   </div>
-  <div class="grid grid-cols-2 gap-4">
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-      <select name="type" class="input">
-        <option value="blog" {{if eq .Page.Type "blog"}}selected{{end}}>Blog post</option>
-        <option value="page" {{if eq .Page.Type "page"}}selected{{end}}>Page</option>
-      </select>
+
+  {{/* ── Settings sidebar ── */}}
+  <div class="w-72 shrink-0 space-y-4 sticky top-20" x-data="{
+    scheduleMode: false,
+    scheduledAt: '{{if .Page.PublishedAt}}{{.Page.PublishedAt.Format "2006-01-02T15:04"}}{{end}}'
+  }">
+
+    {{/* Publish panel */}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+        <span class="text-sm font-semibold text-gray-700">Publish</span>
+        {{if .Page.ID}}
+        <span class="text-xs px-2 py-0.5 rounded-full {{if eq .Page.Status "published"}}bg-green-50 text-green-600{{else if .Page.PublishedAt}}bg-blue-50 text-blue-600{{else}}bg-gray-100 text-gray-500{{end}}">
+          {{if eq .Page.Status "published"}}Published{{else if .Page.PublishedAt}}Scheduled{{else}}Draft{{end}}
+        </span>
+        {{end}}
+      </div>
+      <div class="p-4 space-y-3">
+
+        {{/* Schedule toggle */}}
+        <div>
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" x-model="scheduleMode" class="rounded border-gray-300 text-violet-600 focus:ring-violet-500">
+            <span class="text-sm text-gray-700">Schedule for later</span>
+          </label>
+          <div x-show="scheduleMode" x-cloak class="mt-2">
+            <input type="datetime-local" name="scheduled_at"
+                   x-model="scheduledAt"
+                   class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500">
+            <p class="text-xs text-gray-400 mt-1">Post will go live at this time.</p>
+          </div>
+        </div>
+
+        {{/* Action buttons */}}
+        <div class="flex flex-col gap-2 pt-1">
+          <button type="button"
+                  @click="scheduleMode ? setAction('schedule') : setAction('publish'); document.getElementById('cms-form').requestSubmit()"
+                  class="w-full py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors">
+            <span x-text="scheduleMode ? 'Schedule' : 'Publish now'">Publish now</span>
+          </button>
+          <button type="button"
+                  @click="setAction('draft'); document.getElementById('cms-form').requestSubmit()"
+                  class="w-full py-2 border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-lg transition-colors">
+            Save draft
+          </button>
+        </div>
+
+        {{/* Unpublish link for published pages */}}
+        {{if eq .Page.Status "published"}}
+        <div class="pt-1 border-t border-gray-100">
+          <form method="POST" action="/admin/cms/{{.Page.ID}}/publish">
+            <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+            <button type="submit" class="text-xs text-gray-400 hover:text-red-500 transition-colors">
+              Unpublish
+            </button>
+          </form>
+        </div>
+        {{end}}
+
+      </div>
     </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Cover image URL</label>
-      <input type="url" name="cover_image_url" value="{{.Page.CoverImageURL}}" class="input" placeholder="https://...">
+
+    {{/* Page settings */}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-100">
+        <span class="text-sm font-semibold text-gray-700">Settings</span>
+      </div>
+      <div class="p-4 space-y-3">
+
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Type</label>
+          <select name="type" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white">
+            <option value="blog" {{if eq .Page.Type "blog"}}selected{{end}}>Blog post</option>
+            <option value="page" {{if eq .Page.Type "page"}}selected{{end}}>Page</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Slug</label>
+          <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-violet-500">
+            <span class="pl-3 pr-1 text-gray-400 text-xs">/</span>
+            <input type="text" name="slug" id="slug-input"
+                   value="{{.Page.Slug}}"
+                   required pattern="[a-z0-9\-]+"
+                   class="flex-1 py-2 pr-3 text-sm border-0 outline-none bg-transparent">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Cover image URL</label>
+          <input type="url" name="cover_image_url" value="{{.Page.CoverImageURL}}"
+                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+                 placeholder="https://...">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Excerpt</label>
+          <textarea name="excerpt" rows="3"
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                    placeholder="Short summary…">{{.Page.Excerpt}}</textarea>
+        </div>
+
+      </div>
     </div>
-  </div>
-  <div>
-    <label class="block text-sm font-medium text-gray-700 mb-1">Excerpt</label>
-    <textarea name="excerpt" class="input" rows="2">{{.Page.Excerpt}}</textarea>
-  </div>
-  <div>
-    <label class="block text-sm font-medium text-gray-700 mb-2">Content</label>
-    <input id="trix_content" type="hidden" name="trix_content" value="{{.Page.ContentHTML}}">
-    <trix-editor input="trix_content" class="rounded-lg border border-gray-200 min-h-64 p-3 text-sm bg-white"></trix-editor>
-  </div>
-  <div class="grid grid-cols-2 gap-4">
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Meta title</label>
-      <input type="text" name="meta_title" value="{{.Page.MetaTitle}}" class="input">
+
+    {{/* SEO */}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-100">
+        <span class="text-sm font-semibold text-gray-700">SEO</span>
+      </div>
+      <div class="p-4 space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Meta title</label>
+          <input type="text" name="meta_title" value="{{.Page.MetaTitle}}"
+                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+                 placeholder="Defaults to title">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Meta description</label>
+          <textarea name="meta_description" rows="2"
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                    placeholder="Defaults to excerpt">{{.Page.MetaDescription}}</textarea>
+        </div>
+        {{if .Page.Slug}}
+        <p class="text-xs text-gray-400 break-all">
+          URL: <span class="text-violet-600">/{{if eq .Page.Type "blog"}}blog{{else}}p{{end}}/{{.Page.Slug}}</span>
+        </p>
+        {{end}}
+      </div>
     </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Meta description</label>
-      <input type="text" name="meta_description" value="{{.Page.MetaDescription}}" class="input">
-    </div>
-  </div>
-  <div class="flex gap-3 pt-2">
-    <button type="submit" class="btn-primary">Save</button>
-    <a href="/admin/cms" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Cancel</a>
+
+    {{/* Cancel */}}
+    <a href="/admin/cms" class="block text-center text-sm text-gray-400 hover:text-gray-600 py-1">
+      ← Back to pages
+    </a>
+
   </div>
 </form>
+
 <script>
+  // Copy Trix HTML into hidden field before submit
   document.getElementById('cms-form').addEventListener('submit', function() {
     var trix = document.querySelector('trix-editor');
     document.getElementById('content_html_input').value = trix ? trix.innerHTML : '';
+  });
+
+  // Set the form action (draft / publish / schedule)
+  function setAction(val) {
+    document.getElementById('form_action').value = val;
+  }
+
+  // Auto-generate slug from title (only when slug is empty)
+  function maybeAutoSlug(title) {
+    var slugInput = document.getElementById('slug-input');
+    if (slugInput.dataset.manual === 'true') return;
+    slugInput.value = title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .substring(0, 80);
+  }
+
+  // Once the user manually edits the slug, stop auto-generating
+  document.getElementById('slug-input').addEventListener('input', function() {
+    this.dataset.manual = 'true';
   });
 </script>
 {{end}}

@@ -71,8 +71,6 @@ func (h *CMSHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 	title := strings.TrimSpace(r.FormValue("title"))
 	slug := strings.TrimSpace(r.FormValue("slug"))
 	pageType := r.FormValue("type")
-	rawHTML := r.FormValue("content_html")
-	excerpt := strings.TrimSpace(r.FormValue("excerpt"))
 
 	if title == "" || slug == "" {
 		h.renderAdmin(w, "cms-edit.html", map[string]any{
@@ -94,22 +92,22 @@ func (h *CMSHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 		pageType = "blog"
 	}
 
-	// Sanitise HTML before storage — prevents stored XSS
-	cleanHTML := cmsPolicy.Sanitize(rawHTML)
-	defaultLayoutID := "00000000-0000-0000-0000-000000000001"
+	cleanHTML := cmsPolicy.Sanitize(r.FormValue("content_html"))
+	status, publishedAt := resolvePublishState(r.FormValue("action"), r.FormValue("scheduled_at"))
 
 	page := &model.CMSPage{
-		LayoutID:        defaultLayoutID,
+		LayoutID:        "00000000-0000-0000-0000-000000000001",
 		AuthorID:        middleware.UserIDFromContext(r.Context()),
 		Title:           title,
 		Slug:            slug,
 		Type:            pageType,
 		ContentHTML:     cleanHTML,
-		Excerpt:         excerpt,
+		Excerpt:         strings.TrimSpace(r.FormValue("excerpt")),
 		CoverImageURL:   strings.TrimSpace(r.FormValue("cover_image_url")),
 		MetaTitle:       strings.TrimSpace(r.FormValue("meta_title")),
 		MetaDescription: strings.TrimSpace(r.FormValue("meta_description")),
-		Status:          "draft",
+		Status:          status,
+		PublishedAt:     publishedAt,
 	}
 
 	if err := h.repos.CMS.CreatePage(r.Context(), page); err != nil {
@@ -120,8 +118,8 @@ func (h *CMSHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actorID := middleware.UserIDFromContext(r.Context())
-	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "create_page", "cms_page", page.ID, "")
-	http.Redirect(w, r, "/admin/cms", http.StatusSeeOther)
+	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "create_page:"+status, "cms_page", page.ID, "")
+	http.Redirect(w, r, "/admin/cms/"+page.ID+"/edit", http.StatusSeeOther)
 }
 
 // EditPageForm renders GET /admin/cms/:id/edit.
@@ -151,6 +149,8 @@ func (h *CMSHandler) UpdatePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cleanHTML := cmsPolicy.Sanitize(r.FormValue("content_html"))
+	status, publishedAt := resolvePublishState(r.FormValue("action"), r.FormValue("scheduled_at"))
+
 	page := &model.CMSPage{
 		ID:              id,
 		Title:           title,
@@ -166,9 +166,33 @@ func (h *CMSHandler) UpdatePage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
+	// Update publish state separately so status + published_at are always in sync
+	if err := h.repos.CMS.SetPageStatus(r.Context(), id, status, publishedAt); err != nil {
+		slog.Error("cms.UpdatePage: set status", "error", err)
+	}
 	actorID := middleware.UserIDFromContext(r.Context())
-	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "update_page", "cms_page", id, "")
-	http.Redirect(w, r, "/admin/cms", http.StatusSeeOther)
+	_ = h.repos.Admin.WriteAuditLog(r.Context(), actorID, "update_page:"+status, "cms_page", id, "")
+	http.Redirect(w, r, "/admin/cms/"+id+"/edit", http.StatusSeeOther)
+}
+
+// resolvePublishState converts a form action + optional scheduled_at string
+// into a (status, *publishedAt) pair ready to store.
+func resolvePublishState(action, scheduledAt string) (status string, publishedAt *time.Time) {
+	switch action {
+	case "publish":
+		now := time.Now()
+		return "published", &now
+	case "schedule":
+		t, err := time.ParseInLocation("2006-01-02T15:04", scheduledAt, time.UTC)
+		if err == nil && t.After(time.Now()) {
+			return "draft", &t
+		}
+		// Fallback: treat as publish now if date is invalid or in the past
+		now := time.Now()
+		return "published", &now
+	default: // "draft" or anything else
+		return "draft", nil
+	}
 }
 
 // TogglePublish handles POST /admin/cms/:id/publish.
