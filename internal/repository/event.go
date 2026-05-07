@@ -15,6 +15,7 @@ type EventRepository interface {
 	Write(ctx context.Context, e *model.Event) error
 	WriteBatch(ctx context.Context, events []*model.Event) error
 	CountBySite(ctx context.Context, siteID string, from, to time.Time) (int64, error)
+	ListCustomEvents(ctx context.Context, siteID string, from, to time.Time, limit int) ([]*model.CustomEventStat, error)
 }
 
 type pgEventRepository struct {
@@ -65,4 +66,28 @@ func (r *pgEventRepository) CountBySite(ctx context.Context, siteID string, from
 		return 0, fmt.Errorf("eventRepository.CountBySite: %w", err)
 	}
 	return count, nil
+}
+
+func (r *pgEventRepository) ListCustomEvents(ctx context.Context, siteID string, from, to time.Time, limit int) ([]*model.CustomEventStat, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT type, url, COUNT(*) AS cnt
+		FROM events
+		WHERE site_id=$1 AND type != 'pageview' AND timestamp BETWEEN $2 AND $3
+		GROUP BY type, url
+		ORDER BY cnt DESC
+		LIMIT $4
+	`, siteID, from, to, limit)
+	if err != nil {
+		return nil, fmt.Errorf("eventRepository.ListCustomEvents: %w", err)
+	}
+	defer rows.Close()
+	var stats []*model.CustomEventStat
+	for rows.Next() {
+		s := &model.CustomEventStat{}
+		if err := rows.Scan(&s.EventType, &s.URL, &s.Count); err != nil {
+			return nil, fmt.Errorf("eventRepository.ListCustomEvents: scan: %w", err)
+		}
+		stats = append(stats, s)
+	}
+	return stats, rows.Err()
 }

@@ -17,6 +17,7 @@ type SiteRepository interface {
 	GetByToken(ctx context.Context, token string) (*model.Site, error)
 	ListByOwner(ctx context.Context, ownerID string) ([]*model.Site, error)
 	Delete(ctx context.Context, id string) error
+	Update(ctx context.Context, s *model.Site) error
 }
 
 type pgSiteRepository struct {
@@ -91,6 +92,16 @@ func (r *pgSiteRepository) Delete(ctx context.Context, id string) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM sites WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("siteRepository.Delete: %w", err)
+	}
+	return nil
+}
+
+func (r *pgSiteRepository) Update(ctx context.Context, s *model.Site) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE sites SET name=$2, timezone=$3 WHERE id=$1`,
+		s.ID, s.Name, s.Timezone)
+	if err != nil {
+		return fmt.Errorf("siteRepository.Update: %w", err)
 	}
 	return nil
 }
