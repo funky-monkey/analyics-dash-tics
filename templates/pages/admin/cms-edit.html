@@ -7,65 +7,37 @@
   /* x-cloak: hide Alpine-managed elements before Alpine boots */
   [x-cloak] { display: none !important; }
 
-  /* Force trix-editor to behave as a block element — Tailwind v4 base reset
-     strips display from custom elements, making trix-editor invisible */
+  /* Tailwind's base reset is opted out for trix elements via input.css.
+     These rules are purely cosmetic — applied on top of Trix's own styles. */
   trix-editor {
-    display: block !important;
+    padding: 1.25rem !important;
+    min-height: 480px !important;
+    font-size: 1rem !important;
+    line-height: 1.75 !important;
+    color: #111827 !important;
     border: none !important;
     outline: none !important;
-    padding: 1.5rem !important;
-    min-height: 480px;
-    font-size: 1rem;
-    line-height: 1.75;
-    color: #111827;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     background: #fff;
   }
   trix-toolbar {
-    display: block !important;
     padding: 0.5rem 0.75rem !important;
+    background: #f9fafb !important;
     border-bottom: 1px solid #f0f0f8 !important;
-    background: #fafafa !important;
     border-radius: 0.75rem 0.75rem 0 0;
   }
-  trix-toolbar .trix-button-group {
-    border-color: #e5e7eb !important;
-    margin-bottom: 0 !important;
-  }
-  trix-toolbar .trix-button {
-    border-bottom: none !important;
-    color: #6b7280 !important;
-  }
-  trix-toolbar .trix-button.trix-active {
-    color: #7c6af7 !important;
-    background: #f5f3ff !important;
-  }
-  trix-toolbar .trix-button:hover {
-    color: #374151 !important;
-    background: #f9fafb !important;
-  }
-  /* Trix content typography */
+  trix-toolbar .trix-button-group { margin-bottom: 0; }
+  trix-toolbar .trix-button       { border-bottom: none; color: #6b7280; }
+  trix-toolbar .trix-button.trix-active { color: #7c6af7; background: #f5f3ff; }
+  trix-toolbar .trix-button:hover       { color: #374151; background: #f9fafb; }
+
   .trix-content h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 0.75rem; line-height: 1.25; }
   .trix-content h2 { font-size: 1.375rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
   .trix-content p  { margin-bottom: 1rem; }
   .trix-content ul, .trix-content ol { padding-left: 1.5rem; margin-bottom: 1rem; }
   .trix-content li { margin-bottom: 0.25rem; }
-  .trix-content blockquote {
-    border-left: 3px solid #7c6af7;
-    padding-left: 1rem;
-    color: #6b7280;
-    font-style: italic;
-    margin: 1rem 0;
-  }
-  .trix-content pre {
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    font-size: 0.875rem;
-    overflow-x: auto;
-  }
-  .trix-content a { color: #7c6af7; text-decoration: underline; }
+  .trix-content blockquote { border-left: 3px solid #7c6af7; padding-left: 1rem; color: #6b7280; font-style: italic; margin: 1rem 0; }
+  .trix-content pre { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; font-size: 0.875rem; overflow-x: auto; }
+  .trix-content a   { color: #7c6af7; text-decoration: underline; }
 </style>
 {{end}}
 {{define "content"}}
