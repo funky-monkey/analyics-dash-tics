@@ -66,6 +66,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := seedGoals(ctx, pool, siteID); err != nil {
+		slog.Error("seedGoals", "error", err)
+		os.Exit(1)
+	}
+
+	if err := seedFunnels(ctx, pool, siteID); err != nil {
+		slog.Error("seedFunnels", "error", err)
+		os.Exit(1)
+	}
+
 	slog.Info("seed complete", "site", domain)
 }
 
@@ -321,6 +331,98 @@ func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 
 	if aggPageviews == 0 {
 		slog.Warn("aggregate has 0 pageviews — try running: psql $DATABASE_URL -c \"CALL refresh_continuous_aggregate('stats_hourly', NULL, NULL)\"")
+	}
+	return nil
+}
+
+// ── goals & funnels ──────────────────────────────────────────────────────────
+
+func seedGoals(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
+	if _, err := pool.Exec(ctx, `DELETE FROM goals WHERE site_id=$1`, siteID); err != nil {
+		return fmt.Errorf("seedGoals: delete: %w", err)
+	}
+	goals := []struct{ name, typ, value string }{
+		{"Signup page view", "pageview", "https://acme.io/signup"},
+		{"Pricing page view", "pageview", "https://acme.io/pricing"},
+		{"Docs visit", "pageview", "https://acme.io/docs/getting-started"},
+		{"CTA click", "event", "cta_click"},
+		{"Plan selected", "event", "plan_selected"},
+		{"Signup form submit", "event", "form_submit"},
+		{"File download", "event", "file_download"},
+		{"Button click", "event", "button_click"},
+	}
+	for _, g := range goals {
+		if _, err := pool.Exec(ctx,
+			`INSERT INTO goals (site_id, name, type, value) VALUES ($1,$2,$3,$4)`,
+			siteID, g.name, g.typ, g.value); err != nil {
+			return fmt.Errorf("seedGoals: insert %q: %w", g.name, err)
+		}
+	}
+	slog.Info("goals seeded", "count", len(goals))
+	return nil
+}
+
+func seedFunnels(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
+	// Delete existing funnel steps + funnels (cascade handles steps)
+	if _, err := pool.Exec(ctx, `DELETE FROM funnels WHERE site_id=$1`, siteID); err != nil {
+		return fmt.Errorf("seedFunnels: delete: %w", err)
+	}
+
+	type step struct{ name, matchType, value string }
+	funnels := []struct {
+		name  string
+		steps []step
+	}{
+		{
+			"Homepage → Pricing → Signup",
+			[]step{
+				{"Homepage", "url", "https://acme.io/"},
+				{"Pricing", "url", "https://acme.io/pricing"},
+				{"Signup", "url", "https://acme.io/signup"},
+			},
+		},
+		{
+			"Blog → Pricing → Signup",
+			[]step{
+				{"Blog post", "url", "https://acme.io/blog/privacy-first-analytics"},
+				{"Pricing", "url", "https://acme.io/pricing"},
+				{"Signup", "url", "https://acme.io/signup"},
+			},
+		},
+		{
+			"Docs → Signup",
+			[]step{
+				{"Docs", "url", "https://acme.io/docs/getting-started"},
+				{"Pricing", "url", "https://acme.io/pricing"},
+				{"Signup", "url", "https://acme.io/signup"},
+			},
+		},
+		{
+			"CTA → Plan selected",
+			[]step{
+				{"CTA click", "event", "cta_click"},
+				{"Plan selected", "event", "plan_selected"},
+				{"Signup", "url", "https://acme.io/signup"},
+			},
+		},
+	}
+
+	for _, f := range funnels {
+		var funnelID string
+		if err := pool.QueryRow(ctx,
+			`INSERT INTO funnels (site_id, name) VALUES ($1,$2) RETURNING id`,
+			siteID, f.name).Scan(&funnelID); err != nil {
+			return fmt.Errorf("seedFunnels: insert funnel %q: %w", f.name, err)
+		}
+		for i, s := range f.steps {
+			if _, err := pool.Exec(ctx,
+				`INSERT INTO funnel_steps (funnel_id, position, name, match_type, value)
+				 VALUES ($1,$2,$3,$4,$5)`,
+				funnelID, i, s.name, s.matchType, s.value); err != nil {
+				return fmt.Errorf("seedFunnels: insert step %d of %q: %w", i, f.name, err)
+			}
+		}
+		slog.Info("funnel seeded", "name", f.name, "steps", len(f.steps))
 	}
 	return nil
 }
