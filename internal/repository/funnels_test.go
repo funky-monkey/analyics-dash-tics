@@ -80,7 +80,7 @@ func TestFunnelRepository_GetDropOff(t *testing.T) {
 	now := time.Now()
 
 	// Visitor A hits all 3 steps in order
-	for i, ev := range []struct {
+	for _, ev := range []struct {
 		url    string
 		offset time.Duration
 	}{
@@ -88,7 +88,6 @@ func TestFunnelRepository_GetDropOff(t *testing.T) {
 		{"https://droptest.com/pricing", 1 * time.Second},
 		{"https://droptest.com/signup", 2 * time.Second},
 	} {
-		_ = i
 		require.NoError(t, repos.Events.Write(ctx, &model.Event{
 			SiteID: site.ID, Type: "pageview", URL: ev.url,
 			VisitorID: "visitor-a", SessionID: "sess-a",

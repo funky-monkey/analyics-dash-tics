@@ -2,10 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sidneydekoning/analytics/internal/model"
 )
@@ -46,6 +48,9 @@ func (r *pgFunnelRepository) GetWithSteps(ctx context.Context, id, siteID string
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, site_id, name, to_char(created_at,'YYYY-MM-DD') FROM funnels WHERE id=$1 AND site_id=$2`, id, siteID).
 		Scan(&f.ID, &f.SiteID, &f.Name, &f.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, ErrNotFound
+	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("funnelRepository.GetWithSteps: funnel: %w", err)
 	}
@@ -86,7 +91,10 @@ func (r *pgFunnelRepository) Create(ctx context.Context, f *model.Funnel, steps 
 			return fmt.Errorf("funnelRepository.Create: insert step %d: %w", s.Position, err)
 		}
 	}
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("funnelRepository.Create: commit: %w", err)
+	}
+	return nil
 }
 
 func (r *pgFunnelRepository) Delete(ctx context.Context, id, siteID string) error {
@@ -129,7 +137,11 @@ func (r *pgFunnelRepository) GetDropOff(ctx context.Context, siteID string, step
 	sb.WriteString("  SELECT DISTINCT visitor_id, MIN(timestamp) AS reached_at\n")
 	sb.WriteString("  FROM events WHERE site_id=$1 AND timestamp BETWEEN $2 AND $3\n")
 	writeStepCond(&sb, steps[0], 4, "")
-	sb.WriteString("  GROUP BY visitor_id\n),\n")
+	if len(steps) > 1 {
+		sb.WriteString("  GROUP BY visitor_id\n),\n")
+	} else {
+		sb.WriteString("  GROUP BY visitor_id\n)\n")
+	}
 
 	// step_1..N-1: aliased as "e", joined to previous step
 	for i := 1; i < len(steps); i++ {
