@@ -277,7 +277,7 @@ func (h *DashboardHandler) CreateFunnel(w http.ResponseWriter, r *http.Request) 
 			continue
 		}
 		steps = append(steps, &model.FunnelStep{
-			Position: i, Name: sname, MatchType: mt, Value: val,
+			Position: len(steps), Name: sname, MatchType: mt, Value: val,
 		})
 	}
 	if len(steps) < 2 {
