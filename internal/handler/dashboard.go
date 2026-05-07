@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sidneydekoning/analytics/internal/middleware"
@@ -95,35 +96,87 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 	from, to := service.DateRange(period)
 	slug := domainSlug(site.Domain)
 
-	summary, err := h.repos.Stats.GetSummary(r.Context(), site.ID, from, to)
-	if err != nil {
-		slog.Error("overview: summary", "error", err)
-		summary = &model.StatsSummary{}
+	// Run all independent DB queries concurrently — previously sequential,
+	// each adding ~50ms latency for a total of ~500ms+ on the overview page.
+	var (
+		summary    = &model.StatsSummary{}
+		timeseries []*model.TimePoint
+		pages      []*model.PageStat
+		rawSources []*model.SourceStat
+		countries  []*model.AudienceStat
+		devices    []*model.AudienceStat
+		browsers   []*model.AudienceStat
+		funnelList []*model.Funnel
+		mu         sync.Mutex
+		wg         sync.WaitGroup
+	)
+	_ = mu // used below when writing funnel results
+
+	run := func(fn func()) {
+		wg.Add(1)
+		go func() { defer wg.Done(); fn() }()
 	}
 
-	timeseries, _ := h.repos.Stats.GetTimeSeries(r.Context(), site.ID, from, to)
-	pages, _ := h.repos.Stats.GetTopPages(r.Context(), site.ID, from, to, 5)
-	sources, _ := h.repos.Stats.GetTopSources(r.Context(), site.ID, from, to, 30)
-	countries, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "country", from, to, 5)
-	devices, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "device_type", from, to, 5)
-	browsers, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "browser", from, to, 5)
-	// Load up to 3 funnels with full drop-off data for the overview cards.
-	funnelList, _ := h.repos.Funnels.ListBySite(r.Context(), site.ID)
-	if len(funnelList) > 3 {
-		funnelList = funnelList[:3]
-	}
-	var funnelResults []*model.FunnelResult
-	for _, f := range funnelList {
-		_, steps, err := h.repos.Funnels.GetWithSteps(r.Context(), f.ID, site.ID)
-		if err != nil || len(steps) == 0 {
-			continue
-		}
-		counts, err := h.repos.Funnels.GetDropOff(r.Context(), site.ID, steps, from, to)
+	run(func() {
+		s, err := h.repos.Stats.GetSummary(r.Context(), site.ID, from, to)
 		if err != nil {
-			counts = make([]int64, len(steps))
+			slog.Error("overview: summary", "error", err)
+			return
 		}
-		funnelResults = append(funnelResults, service.BuildFunnelResult(f, steps, counts))
+		summary = s
+	})
+	run(func() {
+		timeseries, _ = h.repos.Stats.GetTimeSeries(r.Context(), site.ID, from, to)
+	})
+	run(func() {
+		pages, _ = h.repos.Stats.GetTopPages(r.Context(), site.ID, from, to, 5)
+	})
+	run(func() {
+		rawSources, _ = h.repos.Stats.GetTopSources(r.Context(), site.ID, from, to, 30)
+	})
+	run(func() {
+		countries, _ = h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "country", from, to, 5)
+	})
+	run(func() {
+		devices, _ = h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "device_type", from, to, 5)
+	})
+	run(func() {
+		browsers, _ = h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "browser", from, to, 5)
+	})
+	run(func() {
+		list, _ := h.repos.Funnels.ListBySite(r.Context(), site.ID)
+		if len(list) > 3 {
+			list = list[:3]
+		}
+		funnelList = list
+	})
+
+	wg.Wait()
+
+	// Funnel drop-off: parallelise across funnels (each needs 2 queries).
+	funnelResults := make([]*model.FunnelResult, 0, len(funnelList))
+	var frMu sync.Mutex
+	var frWg sync.WaitGroup
+	for _, f := range funnelList {
+		f := f
+		frWg.Add(1)
+		go func() {
+			defer frWg.Done()
+			_, steps, err := h.repos.Funnels.GetWithSteps(r.Context(), f.ID, site.ID)
+			if err != nil || len(steps) == 0 {
+				return
+			}
+			counts, err := h.repos.Funnels.GetDropOff(r.Context(), site.ID, steps, from, to)
+			if err != nil {
+				counts = make([]int64, len(steps))
+			}
+			res := service.BuildFunnelResult(f, steps, counts)
+			frMu.Lock()
+			funnelResults = append(funnelResults, res)
+			frMu.Unlock()
+		}()
 	}
+	frWg.Wait()
 
 	chartTimes, chartPageviews := timeSeriesJSON(timeseries)
 
@@ -136,7 +189,7 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		"ChartPageviews": template.JS(chartPageviews), //nolint:gosec
 		"HasTimeSeries":  len(timeseries) > 0,
 		"TopPages":       pages,
-		"TopSources":     groupSources(sources),
+		"TopSources":     groupSources(rawSources),
 		"Countries":      countries,
 		"Devices":        devices,
 		"Browsers":       browsers,
