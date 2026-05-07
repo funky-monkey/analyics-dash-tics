@@ -196,10 +196,19 @@ func (h *DashboardHandler) Events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	period := periodParam(r)
+	from, to := service.DateRange(period)
+
+	events, err := h.repos.Events.ListCustomEvents(r.Context(), siteID, from, to, 50)
+	if err != nil {
+		slog.Error("dashboard.Events", "error", err)
+		events = nil
+	}
+
 	h.renderDash(w, "events.html", map[string]any{
 		"SiteID": siteID, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "events",
 		"Period": period, "AvailablePeriods": periodsAvailable,
+		"Events": events,
 	})
 }
 
