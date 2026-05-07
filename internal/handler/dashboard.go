@@ -107,7 +107,23 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 	countries, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "country", from, to, 5)
 	devices, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "device_type", from, to, 5)
 	browsers, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "browser", from, to, 5)
-	funnels, _ := h.repos.Funnels.ListBySite(r.Context(), site.ID)
+	// Load up to 3 funnels with full drop-off data for the overview cards.
+	funnelList, _ := h.repos.Funnels.ListBySite(r.Context(), site.ID)
+	if len(funnelList) > 3 {
+		funnelList = funnelList[:3]
+	}
+	var funnelResults []*model.FunnelResult
+	for _, f := range funnelList {
+		_, steps, err := h.repos.Funnels.GetWithSteps(r.Context(), f.ID, site.ID)
+		if err != nil || len(steps) == 0 {
+			continue
+		}
+		counts, err := h.repos.Funnels.GetDropOff(r.Context(), site.ID, steps, from, to)
+		if err != nil {
+			counts = make([]int64, len(steps))
+		}
+		funnelResults = append(funnelResults, service.BuildFunnelResult(f, steps, counts))
+	}
 
 	chartTimes, chartPageviews := timeSeriesJSON(timeseries)
 
@@ -124,7 +140,7 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		"Countries":      countries,
 		"Devices":        devices,
 		"Browsers":       browsers,
-		"Funnels":        funnels,
+		"FunnelResults":  funnelResults,
 		"HasData":        summary.Pageviews > 0 || summary.Visitors > 0,
 		"BaseURL":        h.baseURL,
 		"SiteToken":      site.Token,

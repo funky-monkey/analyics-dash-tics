@@ -155,28 +155,52 @@ function bannerCopy() {
         {{end}}
       </div>
 
-      {{/* Funnels (if any exist) */}}
-      {{if .Funnels}}
-      <div class="bg-white rounded-xl border border-gray-100 p-4">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Funnels</h3>
-          <a href="{{.SiteBaseURL}}/funnels" class="text-xs text-violet-600 hover:underline">All →</a>
-        </div>
-        <div class="space-y-1.5">
-          {{range .Funnels}}
-          <a href="/sites/{{$.SiteID}}/funnels/{{.ID}}"
-             class="flex items-center gap-2 hover:text-violet-600 group">
-            <svg class="w-3 h-3 text-violet-300 group-hover:text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-            </svg>
-            <span class="text-xs text-gray-700 truncate group-hover:text-violet-600">{{.Name}}</span>
-          </a>
-          {{end}}
-        </div>
-      </div>
-      {{end}}
-
     </div>
+
+    {{/* Funnel cards — full drop-off view, same style as /funnels/:id */}}
+    {{if .FunnelResults}}
+    <div>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Funnels</h3>
+        <a href="{{.SiteBaseURL}}/funnels" class="text-xs text-violet-600 hover:underline">All funnels →</a>
+      </div>
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        {{range .FunnelResults}}
+        <a href="/sites/{{$.SiteID}}/funnels/{{.FunnelID}}"
+           class="bg-white rounded-xl border border-gray-100 p-5 hover:border-violet-200 hover:shadow-sm transition-all block group">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-sm font-semibold text-gray-800 group-hover:text-violet-700 truncate pr-2">{{.FunnelName}}</h4>
+            {{$last := index .Steps (dec (len .Steps))}}
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 flex-shrink-0">
+              {{printf "%.0f" $last.Converted}}% conv.
+            </span>
+          </div>
+          <div class="space-y-2.5">
+            {{range .Steps}}
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs text-gray-600 truncate max-w-[60%]">
+                  <span class="text-gray-400 mr-1">{{inc .Position}}.</span>{{.Name}}
+                </span>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <span class="text-xs font-semibold text-gray-800">{{formatNumber .Visitors}}</span>
+                  {{if gt .Position 0}}
+                  <span class="text-xs text-red-400">−{{printf "%.0f" .DropOff}}%</span>
+                  {{end}}
+                </div>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full overflow-hidden" style="height:5px">
+                <div class="h-full rounded-full bg-violet-500" style="width:{{printf "%.1f" .Converted}}%"></div>
+              </div>
+            </div>
+            {{end}}
+          </div>
+        </a>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+
   </div>
 
   {{template "help-card" dict "Title" "Understanding your overview" "Icon" "chart" "Body" "Your overview shows the key performance metrics for the selected period. Use the period picker in the top bar to zoom in on today, 7 days, 30 days, or 90 days." "Items" (list (helpItem "Pageviews" "Every time a page loads on your site. Refreshing counts again.") (helpItem "Unique visitors" "Individual people, identified by a privacy-safe fingerprint. No cookies used.") (helpItem "Sessions" "A group of pageviews from the same visitor within 30 minutes of each other.") (helpItem "Bounce rate" "Percentage of sessions where the visitor viewed only one page and left.") (helpItem "Avg. duration" "Mean session length in minutes and seconds.") (helpItem "Funnels" "Click any funnel name to see its step-by-step drop-off analysis."))}}
