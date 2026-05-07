@@ -1,6 +1,6 @@
 {{define "chart-line"}}
 <div class="bg-white rounded-xl border border-gray-100 p-5 mb-6">
-  {{if .ChartTimes}}
+  {{if .HasTimeSeries}}
   <div id="chart-timeseries" class="w-full" style="height:200px"></div>
   {{else}}
   <div class="flex items-center justify-center" style="height:200px">

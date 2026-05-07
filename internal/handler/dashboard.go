@@ -111,8 +111,10 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "overview",
 		"Period": period, "AvailablePeriods": periodsAvailable,
-		"Summary":    summary,
-		"ChartTimes": template.JS(chartTimes), "ChartPageviews": template.JS(chartPageviews), //nolint:gosec // G203: server-generated JSON, not user input
+		"Summary":        summary,
+		"ChartTimes":     template.JS(chartTimes),     //nolint:gosec // G203: server-generated JSON, not user input
+		"ChartPageviews": template.JS(chartPageviews), //nolint:gosec
+		"HasTimeSeries":  len(timeseries) > 0,
 		"TopPages": pages, "TopSources": sources,
 		"HasData":   summary.Pageviews > 0 || summary.Visitors > 0,
 		"BaseURL":   h.baseURL,

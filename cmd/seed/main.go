@@ -294,18 +294,37 @@ func seedEvents(ctx context.Context, pool *pgxpool.Pool, siteID string) error {
 	}
 	slog.Info("events inserted", "total", totalEvents)
 
-	// Continuous aggregates are scheduled (hourly/daily) and won't reflect bulk-inserted
-	// data until the next policy run. Force a full refresh now so the dashboard is
-	// immediately populated.
-	slog.Info("refreshing continuous aggregates...")
+	// Continuous aggregates won't pick up bulk inserts until their next scheduled run.
+	// Force a full refresh of all time so the dashboard shows data immediately.
+	slog.Info("refreshing continuous aggregates (this may take a few seconds)...")
+
+	// Compute the full time window covered by the seed data.
+	windowStart := now.AddDate(0, 0, -daysBack).Add(-time.Hour)
+	windowEnd := now.Add(time.Hour)
+
 	for _, view := range []string{"stats_hourly", "page_stats_daily", "source_stats_daily"} {
 		if _, err := pool.Exec(ctx,
-			`CALL refresh_continuous_aggregate($1, NULL, NULL)`, view); err != nil {
+			`CALL refresh_continuous_aggregate($1, $2, $3)`, view, windowStart, windowEnd); err != nil {
 			return fmt.Errorf("refresh %s: %w", view, err)
 		}
-		slog.Info("refreshed", "view", view)
+		// Verify rows were written
+		var rowCount int64
+		if err := pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM `+view+` WHERE site_id = $1`, siteID).Scan(&rowCount); err == nil {
+			slog.Info("aggregate refreshed", "view", view, "rows", rowCount)
+		}
 	}
-	slog.Info("seed complete — all aggregates refreshed")
+
+	// Final sanity check: raw events vs aggregated pageviews
+	var rawEvents int64
+	_ = pool.QueryRow(ctx, `SELECT COUNT(*) FROM events WHERE site_id=$1`, siteID).Scan(&rawEvents)
+	var aggPageviews int64
+	_ = pool.QueryRow(ctx, `SELECT COALESCE(SUM(pageviews),0) FROM stats_hourly WHERE site_id=$1`, siteID).Scan(&aggPageviews)
+	slog.Info("verification", "raw_events", rawEvents, "aggregated_pageviews", aggPageviews)
+
+	if aggPageviews == 0 {
+		slog.Warn("aggregate has 0 pageviews — try running: psql $DATABASE_URL -c \"CALL refresh_continuous_aggregate('stats_hourly', NULL, NULL)\"")
+	}
 	return nil
 }
 
