@@ -163,6 +163,7 @@ func main() {
 		r.Post("/admin/cms/{id}/publish", cmsHandler.TogglePublish)
 		r.Post("/admin/cms/{id}/delete", cmsHandler.DeletePage)
 		r.Get("/admin/audit-log", adminHandler.AuditLog)
+		r.Get("/admin/tracker-test", adminHandler.TrackerTest)
 	})
 
 	srv := &http.Server{

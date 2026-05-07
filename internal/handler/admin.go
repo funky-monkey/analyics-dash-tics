@@ -228,6 +228,11 @@ func (h *AdminHandler) Sites(w http.ResponseWriter, r *http.Request) {
 	h.renderAdmin(w, "sites.html", data)
 }
 
+// TrackerTest renders GET /admin/tracker-test.
+func (h *AdminHandler) TrackerTest(w http.ResponseWriter, r *http.Request) {
+	h.renderAdmin(w, "tracker-test.html", map[string]any{"ActiveNav": "tracker-test"})
+}
+
 // AuditLog renders GET /admin/audit-log.
 func (h *AdminHandler) AuditLog(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{"ActiveNav": "audit", "Entries": []*repository.AuditEntry{}}

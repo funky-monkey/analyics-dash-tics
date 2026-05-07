@@ -1,0 +1,184 @@
+{{template "admin.html" .}}
+{{define "title"}}Tracker test — Admin{{end}}
+{{define "head"}}
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+@keyframes copy-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(139,92,246,.5); }
+  60%  { box-shadow: 0 0 0 10px rgba(139,92,246,0); }
+  100% { box-shadow: 0 0 0 0 rgba(139,92,246,0); }
+}
+.copy-flash { animation: copy-flash .5s ease-out; }
+</style>
+{{end}}
+{{define "content"}}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Tracker test</h1>
+    <p class="text-sm text-gray-500 mt-1">Paste any tracking snippet and verify it fires correctly.</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 gap-6 max-w-3xl">
+
+  {{/* Snippet input */}}
+  <div class="bg-white rounded-xl border border-gray-100 p-6">
+    <label class="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">Paste tracking snippet</label>
+    <textarea id="snippet-input" rows="4" spellcheck="false"
+      class="w-full font-mono text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-gray-50 resize-none"
+      placeholder="<script&#10;  src=&quot;https://dash.local/static/script.js&quot;&#10;  data-site=&quot;tk_xxxx&quot;&#10;  async></script>"></textarea>
+    <div class="flex gap-2 mt-3">
+      <button onclick="loadScript()"
+        class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors">
+        Load &amp; test
+      </button>
+      <button onclick="clearAll()"
+        class="px-4 py-2 border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-lg transition-colors">
+        Reset
+      </button>
+    </div>
+  </div>
+
+  {{/* Status + custom events */}}
+  <div class="bg-white rounded-xl border border-gray-100 p-6">
+    <div class="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
+      <div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-300 flex-shrink-0"></div>
+      <span id="status-text" class="text-sm text-gray-500">No script loaded.</span>
+    </div>
+
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Fire custom events</p>
+    <div class="flex flex-wrap gap-2 mb-2">
+      <button onclick="fire('button_click',{label:'primary_cta'})"   class="btn-event">button_click</button>
+      <button onclick="fire('signup_start',{plan:'pro'})"            class="btn-event">signup_start</button>
+      <button onclick="fire('video_play',{title:'demo'})"            class="btn-event">video_play</button>
+      <button onclick="fire('file_download',{file:'brochure.pdf'})"  class="btn-event">file_download</button>
+      <button onclick="fire('add_to_cart',{sku:'PRO',price:29})"     class="btn-event">add_to_cart</button>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <input id="custom-event" type="text" placeholder="custom event name"
+        class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+      <button onclick="fireCustom()"
+        class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">
+        Fire
+      </button>
+    </div>
+  </div>
+
+  {{/* Event log */}}
+  <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+      <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Event log</span>
+      <button onclick="document.getElementById('log').innerHTML=''" class="text-xs text-gray-400 hover:text-gray-600">Clear</button>
+    </div>
+    <div id="log" style="background:#0d1117;font-family:monospace;font-size:12px;color:#e6edf3;padding:14px 16px;min-height:140px;max-height:320px;overflow-y:auto;line-height:1.8;white-space:pre-wrap;word-break:break-all">
+      <span style="color:#6e7681">— waiting for script —</span>
+    </div>
+  </div>
+
+</div>
+
+<style>
+.btn-event {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+  color: #374151;
+  cursor: pointer;
+  transition: background .1s, border-color .1s;
+}
+.btn-event:hover { background: #ede9fe; border-color: #7c3aed; color: #7c3aed; }
+</style>
+
+<script>
+var loadedScript = null;
+
+function ts() { return new Date().toLocaleTimeString('en', { hour12: false }); }
+
+function log(color, msg) {
+  var el = document.getElementById('log');
+  // Remove placeholder on first real entry
+  if (el.querySelector('span[style*="6e7681"]')) el.innerHTML = '';
+  var line = document.createElement('div');
+  line.innerHTML = '<span style="color:#6e7681">[' + ts() + ']</span> <span style="color:' + color + '">' + msg + '</span>';
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setStatus(state, msg) {
+  var dot  = document.getElementById('status-dot');
+  var text = document.getElementById('status-text');
+  var colors = { ok: '#22c55e', err: '#ef4444', wait: '#f59e0b', idle: '#d1d5db' };
+  dot.style.background = colors[state] || colors.idle;
+  text.textContent = msg;
+}
+
+function loadScript() {
+  var raw = document.getElementById('snippet-input').value.trim();
+  if (!raw) { alert('Paste a tracking snippet first.'); return; }
+
+  var srcMatch  = raw.match(/src\s*=\s*["']([^"']+)["']/);
+  var siteMatch = raw.match(/data-site\s*=\s*["']([^"']+)["']/);
+
+  if (!srcMatch) {
+    setStatus('err', 'Could not parse src= from snippet.');
+    log('#ff7b72', 'ERROR: no src= attribute found');
+    return;
+  }
+
+  var src  = srcMatch[1];
+  var site = siteMatch ? siteMatch[1] : '(none)';
+
+  if (loadedScript) { loadedScript.remove(); loadedScript = null; window.analytics = undefined; }
+
+  log('#8b949e', 'loading ' + src);
+  log('#8b949e', 'data-site: ' + site);
+  setStatus('wait', 'Loading script…');
+
+  var s = document.createElement('script');
+  s.src = src;
+  if (siteMatch) s.setAttribute('data-site', site);
+  s.async = true;
+  s.onload  = function() {
+    setStatus('ok', 'Script loaded — site: ' + site);
+    log('#7ee787', 'script loaded ✓');
+    log('#7ee787', 'pageview fired');
+  };
+  s.onerror = function() {
+    setStatus('err', 'Failed to load — check src URL');
+    log('#ff7b72', 'ERROR: could not load ' + src);
+  };
+  document.head.appendChild(s);
+  loadedScript = s;
+}
+
+function fire(name, props) {
+  if (!window.analytics || !window.analytics.track) {
+    log('#ff7b72', 'ERROR: load a script first');
+    return;
+  }
+  window.analytics.track(name, props);
+  log('#79c0ff', 'fired: ' + name + '  ' + JSON.stringify(props));
+}
+
+function fireCustom() {
+  var name = document.getElementById('custom-event').value.trim();
+  if (!name) return;
+  fire(name, {});
+  document.getElementById('custom-event').value = '';
+}
+
+function clearAll() {
+  if (loadedScript) { loadedScript.remove(); loadedScript = null; window.analytics = undefined; }
+  document.getElementById('snippet-input').value = '';
+  document.getElementById('log').innerHTML = '<span style="color:#6e7681">— waiting for script —</span>';
+  setStatus('idle', 'No script loaded.');
+}
+
+document.getElementById('custom-event').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') fireCustom();
+});
+</script>
+{{end}}
