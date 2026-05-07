@@ -22,7 +22,7 @@
       <div x-data="{ show: false }">
         <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
         <div class="relative">
-          <input :type="show ? 'text' : 'password'" name="password" required autocomplete="current-password"
+          <input type="password" :type="show ? 'text' : 'password'" name="password" required autocomplete="current-password"
             class="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
           <button type="button" @click="show = !show"
             class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
