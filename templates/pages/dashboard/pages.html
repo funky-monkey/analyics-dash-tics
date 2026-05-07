@@ -4,8 +4,60 @@
 <h2 class="text-lg font-semibold text-gray-900 mb-5">Pages</h2>
 <div class="flex gap-6 items-start">
   <div class="flex-1 min-w-0">
+
+    <div class="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1 w-fit">
+      <a href="?period={{.Period}}&tab=top"
+         class="px-4 py-1.5 text-xs font-medium rounded-md transition-colors {{if eq .Tab "top"}}bg-white text-gray-900 shadow-sm{{else}}text-gray-500 hover:text-gray-700{{end}}">
+        Top pages
+      </a>
+      <a href="?period={{.Period}}&tab=entry"
+         class="px-4 py-1.5 text-xs font-medium rounded-md transition-colors {{if eq .Tab "entry"}}bg-white text-gray-900 shadow-sm{{else}}text-gray-500 hover:text-gray-700{{end}}">
+        Entry pages
+      </a>
+      <a href="?period={{.Period}}&tab=exit"
+         class="px-4 py-1.5 text-xs font-medium rounded-md transition-colors {{if eq .Tab "exit"}}bg-white text-gray-900 shadow-sm{{else}}text-gray-500 hover:text-gray-700{{end}}">
+        Exit pages
+      </a>
+    </div>
+
     <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
-      {{if .Pages}}
+      {{if eq .Tab "entry"}}
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50"><tr class="text-xs text-gray-400 border-b border-gray-100">
+          <th class="text-left px-5 py-3 font-medium">Entry page</th>
+          <th class="text-right px-5 py-3 font-medium">Entrances</th>
+        </tr></thead>
+        <tbody>
+          {{range .EntryPages}}
+          <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+            <td class="px-5 py-3 font-mono text-xs text-gray-600 truncate max-w-sm">{{.URL}}</td>
+            <td class="px-5 py-3 text-right font-medium text-gray-900">{{formatNumber .Sessions}}</td>
+          </tr>
+          {{else}}
+          <tr><td colspan="2" class="px-5 py-10 text-center text-gray-400 text-sm">No data for this period.</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+
+      {{else if eq .Tab "exit"}}
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50"><tr class="text-xs text-gray-400 border-b border-gray-100">
+          <th class="text-left px-5 py-3 font-medium">Exit page</th>
+          <th class="text-right px-5 py-3 font-medium">Exits</th>
+        </tr></thead>
+        <tbody>
+          {{range .ExitPages}}
+          <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+            <td class="px-5 py-3 font-mono text-xs text-gray-600 truncate max-w-sm">{{.URL}}</td>
+            <td class="px-5 py-3 text-right font-medium text-gray-900">{{formatNumber .Sessions}}</td>
+          </tr>
+          {{else}}
+          <tr><td colspan="2" class="px-5 py-10 text-center text-gray-400 text-sm">No data for this period.</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+
+      {{else}}
       <table class="w-full text-sm">
         <thead class="bg-gray-50"><tr class="text-xs text-gray-400 border-b border-gray-100">
           <th class="text-left px-5 py-3 font-medium">Page</th>
@@ -21,14 +73,14 @@
             <td class="px-5 py-3 text-right text-gray-500">{{formatNumber .Sessions}}</td>
             <td class="px-5 py-3 text-right text-gray-500">{{formatDuration .AvgDuration}}</td>
           </tr>
+          {{else}}
+          <tr><td colspan="4" class="px-5 py-10 text-center text-gray-400 text-sm">No page data for this period.</td></tr>
           {{end}}
         </tbody>
       </table>
-      {{else}}
-      <p class="text-sm text-gray-400 text-center py-12">No page data for this period.</p>
       {{end}}
     </div>
   </div>
-  {{template "help-card" dict "Title" "Top pages" "Icon" "page" "Body" "Shows which pages on your site receive the most traffic in the selected period, ordered by pageviews." "Items" (list (helpItem "Pageviews" "Total number of times this URL was loaded. Each reload counts separately.") (helpItem "Sessions" "Number of distinct visits that included this page at least once.") (helpItem "Avg. time" "Average time visitors spent on this page before navigating away.") (helpItem "Tip" "Sort by sessions to see which pages drive engaged visits, not just raw hit counts."))}}
+  {{template "help-card" dict "Title" "Pages report" "Icon" "page" "Body" "Three views of your page data. Switch tabs to see different perspectives on how visitors interact with your content." "Items" (list (helpItem "Top pages" "All pages ranked by total pageviews in the period.") (helpItem "Entry pages" "The first page a visitor lands on — shows which pages bring people into your site.") (helpItem "Exit pages" "The last page before a visitor leaves — high exit rates can indicate friction or dead ends.") (helpItem "Avg. time" "Average time on page across all sessions that included this page."))}}
 </div>
 {{end}}

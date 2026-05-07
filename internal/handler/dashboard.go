@@ -212,11 +212,28 @@ func (h *DashboardHandler) Pages(w http.ResponseWriter, r *http.Request) {
 	period := periodParam(r)
 	from, to := service.DateRange(period)
 	slug := domainSlug(site.Domain)
-	pages, _ := h.repos.Stats.GetTopPages(r.Context(), site.ID, from, to, 50)
+	tab := r.URL.Query().Get("tab")
+	if tab == "" {
+		tab = "top"
+	}
+
+	var (
+		pages      []*model.PageStat
+		entryPages []*model.PageStat
+		exitPages  []*model.PageStat
+		wg         sync.WaitGroup
+	)
+	wg.Add(3)
+	go func() { defer wg.Done(); pages, _ = h.repos.Stats.GetTopPages(r.Context(), site.ID, from, to, 50) }()
+	go func() { defer wg.Done(); entryPages, _ = h.repos.Stats.GetEntryPages(r.Context(), site.ID, from, to, 50) }()
+	go func() { defer wg.Done(); exitPages, _ = h.repos.Stats.GetExitPages(r.Context(), site.ID, from, to, 50) }()
+	wg.Wait()
+
 	h.renderDash(w, r, "pages.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "pages",
-		"Period": period, "AvailablePeriods": periodsAvailable, "Pages": pages,
+		"Period": period, "AvailablePeriods": periodsAvailable,
+		"Tab": tab, "Pages": pages, "EntryPages": entryPages, "ExitPages": exitPages,
 	})
 }
 
