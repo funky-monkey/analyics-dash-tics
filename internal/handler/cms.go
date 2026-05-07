@@ -49,12 +49,12 @@ func (h *CMSHandler) CMSList(w http.ResponseWriter, r *http.Request) {
 			data["Pages"] = pages
 		}
 	}
-	h.renderAdmin(w, "cms-list.html", data)
+	h.renderAdmin(w, r, "cms-list.html", data)
 }
 
 // NewPageForm renders GET /admin/cms/new.
 func (h *CMSHandler) NewPageForm(w http.ResponseWriter, r *http.Request) {
-	h.renderAdmin(w, "cms-edit.html", map[string]any{
+	h.renderAdmin(w, r, "cms-edit.html", map[string]any{
 		"ActiveNav": "cms",
 		"Page":      &model.CMSPage{Type: "blog", Status: "draft"},
 		"CSRFToken": csrfToken(r),
@@ -73,7 +73,7 @@ func (h *CMSHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 	pageType := r.FormValue("type")
 
 	if title == "" || slug == "" {
-		h.renderAdmin(w, "cms-edit.html", map[string]any{
+		h.renderAdmin(w, r, "cms-edit.html", map[string]any{
 			"ActiveNav": "cms", "CSRFToken": csrfToken(r),
 			"Page":  &model.CMSPage{Title: title, Slug: slug, Type: pageType},
 			"Error": "Title and slug are required.",
@@ -81,7 +81,7 @@ func (h *CMSHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !slugPattern.MatchString(slug) {
-		h.renderAdmin(w, "cms-edit.html", map[string]any{
+		h.renderAdmin(w, r, "cms-edit.html", map[string]any{
 			"ActiveNav": "cms", "CSRFToken": csrfToken(r),
 			"Page":  &model.CMSPage{Title: title, Slug: slug, Type: pageType},
 			"Error": "Slug may only contain lowercase letters, numbers, and hyphens.",
@@ -111,7 +111,7 @@ func (h *CMSHandler) CreatePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repos.CMS.CreatePage(r.Context(), page); err != nil {
-		h.renderAdmin(w, "cms-edit.html", map[string]any{
+		h.renderAdmin(w, r, "cms-edit.html", map[string]any{
 			"ActiveNav": "cms", "CSRFToken": csrfToken(r),
 			"Page": page, "Error": "Could not save. Slug may already exist.",
 		})
@@ -130,7 +130,7 @@ func (h *CMSHandler) EditPageForm(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	h.renderAdmin(w, "cms-edit.html", map[string]any{
+	h.renderAdmin(w, r, "cms-edit.html", map[string]any{
 		"ActiveNav": "cms", "Page": page, "CSRFToken": csrfToken(r),
 	})
 }
@@ -237,14 +237,14 @@ func (h *CMSHandler) TogglePublish(w http.ResponseWriter, r *http.Request) {
 // BlogList renders GET /blog.
 func (h *CMSHandler) BlogList(w http.ResponseWriter, r *http.Request) {
 	if h.repos == nil {
-		h.renderPublic(w, "blog-list.html", map[string]any{"Posts": []*model.CMSPage{}})
+		h.renderPublic(w, r, "blog-list.html", map[string]any{"Posts": []*model.CMSPage{}})
 		return
 	}
 	posts, err := h.repos.CMS.ListPublishedByType(r.Context(), "blog", 20, 0)
 	if err != nil {
 		slog.Error("cms.BlogList", "error", err)
 	}
-	h.renderPublic(w, "blog-list.html", map[string]any{"Posts": posts})
+	h.renderPublic(w, r, "blog-list.html", map[string]any{"Posts": posts})
 }
 
 // BlogPost renders GET /blog/:slug.
@@ -259,7 +259,7 @@ func (h *CMSHandler) BlogPost(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	h.renderPublic(w, "blog-post.html", map[string]any{"Page": page})
+	h.renderPublic(w, r, "blog-post.html", map[string]any{"Page": page})
 }
 
 // GenericPage renders GET /p/:slug.
@@ -274,10 +274,11 @@ func (h *CMSHandler) GenericPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	h.renderPublic(w, "page.html", map[string]any{"Page": page})
+	h.renderPublic(w, r, "page.html", map[string]any{"Page": page})
 }
 
-func (h *CMSHandler) renderAdmin(w http.ResponseWriter, name string, data any) {
+func (h *CMSHandler) renderAdmin(w http.ResponseWriter, r *http.Request, name string, data any) {
+	injectNonce(r, data)
 	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")
 		return
@@ -294,7 +295,8 @@ func (h *CMSHandler) renderAdmin(w http.ResponseWriter, name string, data any) {
 	}
 }
 
-func (h *CMSHandler) renderPublic(w http.ResponseWriter, name string, data any) {
+func (h *CMSHandler) renderPublic(w http.ResponseWriter, r *http.Request, name string, data any) {
+	injectNonce(r, data)
 	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")
 		return

@@ -13,6 +13,8 @@ type contextKey string
 const (
 	// ContextKeyUserID is the context key for the authenticated user's ID.
 	ContextKeyUserID contextKey = "user_id"
+	// contextKeyNonce is the context key for the per-request CSP nonce.
+	contextKeyNonce contextKey = "csp_nonce"
 	// ContextKeyRole is the context key for the authenticated user's role.
 	ContextKeyRole contextKey = "role"
 )
@@ -80,6 +82,16 @@ func WithRole(ctx context.Context, role string) context.Context {
 }
 
 // tokenFromRequest extracts the JWT from the HTTP-only auth cookie (browser)
+// NonceFromContext returns the per-request CSP nonce set by SecurityHeaders.
+func NonceFromContext(ctx context.Context) string {
+	v, _ := ctx.Value(contextKeyNonce).(string)
+	return v
+}
+
+func withNonce(ctx context.Context, nonce string) context.Context {
+	return context.WithValue(ctx, contextKeyNonce, nonce)
+}
+
 // or the Authorization: Bearer header (Stats API).
 func tokenFromRequest(r *http.Request) string {
 	if c, err := r.Cookie("access_token"); err == nil {

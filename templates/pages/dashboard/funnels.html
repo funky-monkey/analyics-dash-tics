@@ -83,7 +83,7 @@
 </div>
 {{end}}
 
-<script>
+<script nonce="{{.Nonce}}">
 function addStep() {
   var container = document.getElementById('steps-container');
   var template  = container.querySelector('.step-row');

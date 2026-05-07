@@ -44,7 +44,7 @@ func (h *SitesHandler) NewSitePage(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		data.CSRFToken = c.Value
 	}
-	h.renderTemplate(w, "new-site.html", data)
+	h.renderTemplate(w, r, "new-site.html", data)
 }
 
 // CreateSite handles POST /account/sites/new.
@@ -65,7 +65,7 @@ func (h *SitesHandler) CreateSite(w http.ResponseWriter, r *http.Request) {
 			data.CSRFToken = c.Value
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		h.renderTemplate(w, "new-site.html", data)
+		h.renderTemplate(w, r, "new-site.html", data)
 		return
 	}
 
@@ -101,7 +101,7 @@ func (h *SitesHandler) CreateSite(w http.ResponseWriter, r *http.Request) {
 			data.CSRFToken = c.Value
 		}
 		w.WriteHeader(http.StatusInternalServerError)
-		h.renderTemplate(w, "new-site.html", data)
+		h.renderTemplate(w, r, "new-site.html", data)
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h *SitesHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	h.renderTemplate(w, "site-setup.html", map[string]any{
+	h.renderTemplate(w, r, "site-setup.html", map[string]any{
 		"Site":    site,
 		"BaseURL": h.baseURL,
 	})
@@ -170,7 +170,7 @@ func (h *SitesHandler) Settings(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		csrf = c.Value
 	}
-	h.renderDash(w, "settings.html", map[string]any{
+	h.renderDash(w, r, "settings.html", map[string]any{
 		"SiteID":           slug,
 		"SiteDomain":       site.Domain,
 		"SiteBaseURL":      "/sites/" + slug,
@@ -247,7 +247,7 @@ func (h *SitesHandler) GoalsList(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		csrf = c.Value
 	}
-	h.renderDash(w, "goals.html", map[string]any{
+	h.renderDash(w, r, "goals.html", map[string]any{
 		"SiteID":           slug,
 		"SiteDomain":       site.Domain,
 		"SiteBaseURL":      "/sites/" + slug,
@@ -305,7 +305,8 @@ func (h *SitesHandler) DeleteGoal(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/sites/"+DomainSlug(site.Domain)+"/goals", http.StatusSeeOther)
 }
 
-func (h *SitesHandler) renderTemplate(w http.ResponseWriter, name string, data any) {
+func (h *SitesHandler) renderTemplate(w http.ResponseWriter, r *http.Request, name string, data any) {
+	injectNonce(r, data)
 	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")
 		return
@@ -323,7 +324,8 @@ func (h *SitesHandler) renderTemplate(w http.ResponseWriter, name string, data a
 }
 
 // renderDash renders templates that use the dashboard layout (templates/layout/dashboard.html).
-func (h *SitesHandler) renderDash(w http.ResponseWriter, name string, data any) {
+func (h *SitesHandler) renderDash(w http.ResponseWriter, r *http.Request, name string, data any) {
+	injectNonce(r, data)
 	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")
 		return

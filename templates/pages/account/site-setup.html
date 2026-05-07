@@ -141,7 +141,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{.Nonce}}">
 function copySnippet() {
   var text = document.getElementById('snippet').innerText;
   navigator.clipboard.writeText(text).then(function() {

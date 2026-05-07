@@ -34,7 +34,7 @@
     </svg>
   </button>
 </div>
-<script>
+<script nonce="{{.Nonce}}">
 function bannerCopy() {
   var text = document.getElementById('banner-snippet').innerText;
   navigator.clipboard.writeText(text).then(function() {

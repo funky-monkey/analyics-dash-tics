@@ -208,7 +208,7 @@
   </div>
 </form>
 
-<script>
+<script nonce="{{.Nonce}}">
   // Copy Trix HTML into hidden field before submit
   document.getElementById('cms-form').addEventListener('submit', function() {
     var trix = document.querySelector('trix-editor');

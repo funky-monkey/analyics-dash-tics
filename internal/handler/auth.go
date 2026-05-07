@@ -142,7 +142,7 @@ func (h *AuthHandler) ForgotPasswordPage(w http.ResponseWriter, r *http.Request)
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		data.CSRFToken = c.Value
 	}
-	h.renderTemplate(w, "forgot-password.html", data)
+	h.renderTemplate(w, r, "forgot-password.html", data)
 }
 
 // ForgotPassword handles POST /forgot-password.
@@ -171,7 +171,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.renderTemplate(w, "forgot-password.html", data)
+	h.renderTemplate(w, r, "forgot-password.html", data)
 }
 
 type resetPasswordData struct {
@@ -187,7 +187,7 @@ func (h *AuthHandler) ResetPasswordPage(w http.ResponseWriter, r *http.Request) 
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		data.CSRFToken = c.Value
 	}
-	h.renderTemplate(w, "reset-password.html", data)
+	h.renderTemplate(w, r, "reset-password.html", data)
 }
 
 // ResetPassword handles POST /reset-password/{token}.
@@ -206,7 +206,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	if len(password) < 12 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		data.Error = "Password must be at least 12 characters."
-		h.renderTemplate(w, "reset-password.html", data)
+		h.renderTemplate(w, r, "reset-password.html", data)
 		return
 	}
 	// TODO: validate token hash from DB, update password, mark token used (Plan 4)
@@ -237,12 +237,13 @@ func (h *AuthHandler) renderAuth(w http.ResponseWriter, r *http.Request, name st
 			data.CSRFToken = c.Value
 		}
 	}
-	h.renderTemplate(w, name, data)
+	h.renderTemplate(w, r, name, data)
 }
 
 // renderTemplate executes the named page template. Each page has its own isolated
 // template set (base + page) to prevent define blocks bleeding across pages.
-func (h *AuthHandler) renderTemplate(w http.ResponseWriter, name string, data any) {
+func (h *AuthHandler) renderTemplate(w http.ResponseWriter, r *http.Request, name string, data any) {
+	injectNonce(r, data)
 	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")
 		return

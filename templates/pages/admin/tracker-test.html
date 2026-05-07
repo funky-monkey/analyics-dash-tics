@@ -92,7 +92,7 @@
 .btn-event:hover { background: #ede9fe; border-color: #7c3aed; color: #7c3aed; }
 </style>
 
-<script>
+<script nonce="{{.Nonce}}">
 var loadedScript = null;
 
 function ts() { return new Date().toLocaleTimeString('en', { hour12: false }); }

@@ -3,25 +3,37 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"strings"
 )
 
-// SecurityHeaders sets all required security response headers on every response.
-// Must be the outermost middleware so headers are present even on error responses.
+// SecurityHeaders generates a per-request CSP nonce, sets all security headers,
+// and stores the nonce in the request context for use in templates.
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nonce := generateNonce()
 		h := w.Header()
 		h.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
-		h.Set("Content-Security-Policy",
-			"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'")
+		h.Set("Content-Security-Policy", fmt.Sprintf(
+			"default-src 'self'; script-src 'self' 'nonce-%s'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
+			nonce,
+		))
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("X-XSS-Protection", "0")
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(withNonce(r.Context(), nonce)))
 	})
+}
+
+func generateNonce() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "fallback"
+	}
+	return base64.StdEncoding.EncodeToString(b)
 }
 
 // CORS returns middleware that handles Cross-Origin Resource Sharing.

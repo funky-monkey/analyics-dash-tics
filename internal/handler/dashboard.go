@@ -60,7 +60,7 @@ func (h *DashboardHandler) Aggregate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderDash(w, "aggregate.html", map[string]any{
+	h.renderDash(w, r, "aggregate.html", map[string]any{
 		"Sites": sites, "ActiveNav": "overview",
 		"AvailablePeriods": periodsAvailable, "Period": "30d",
 		"SiteBaseURL": "/dashboard", "SiteDomain": "All sites",
@@ -107,7 +107,7 @@ func (h *DashboardHandler) Overview(w http.ResponseWriter, r *http.Request) {
 
 	chartTimes, chartPageviews := timeSeriesJSON(timeseries)
 
-	h.renderDash(w, "overview.html", map[string]any{
+	h.renderDash(w, r, "overview.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "overview",
 		"Period": period, "AvailablePeriods": periodsAvailable,
@@ -137,7 +137,7 @@ func (h *DashboardHandler) Pages(w http.ResponseWriter, r *http.Request) {
 	from, to := service.DateRange(period)
 	slug := domainSlug(site.Domain)
 	pages, _ := h.repos.Stats.GetTopPages(r.Context(), site.ID, from, to, 50)
-	h.renderDash(w, "pages.html", map[string]any{
+	h.renderDash(w, r, "pages.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "pages",
 		"Period": period, "AvailablePeriods": periodsAvailable, "Pages": pages,
@@ -159,7 +159,7 @@ func (h *DashboardHandler) Sources(w http.ResponseWriter, r *http.Request) {
 	from, to := service.DateRange(period)
 	slug := domainSlug(site.Domain)
 	sources, _ := h.repos.Stats.GetTopSources(r.Context(), site.ID, from, to, 200)
-	h.renderDash(w, "sources.html", map[string]any{
+	h.renderDash(w, r, "sources.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "sources",
 		"Period": period, "AvailablePeriods": periodsAvailable,
@@ -304,7 +304,7 @@ func (h *DashboardHandler) Audience(w http.ResponseWriter, r *http.Request) {
 	countries, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "country", from, to, 20)
 	devices, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "device_type", from, to, 5)
 	browsers, _ := h.repos.Stats.GetAudienceByDimension(r.Context(), site.ID, "browser", from, to, 10)
-	h.renderDash(w, "audience.html", map[string]any{
+	h.renderDash(w, r, "audience.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "audience",
 		"Period": period, "AvailablePeriods": periodsAvailable,
@@ -333,7 +333,7 @@ func (h *DashboardHandler) Events(w http.ResponseWriter, r *http.Request) {
 		events = nil
 	}
 
-	h.renderDash(w, "events.html", map[string]any{
+	h.renderDash(w, r, "events.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "events",
 		"Period": period, "AvailablePeriods": periodsAvailable,
@@ -362,7 +362,7 @@ func (h *DashboardHandler) Funnels(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		csrf = c.Value
 	}
-	h.renderDash(w, "funnels.html", map[string]any{
+	h.renderDash(w, r, "funnels.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "funnels",
 		"Period": "30d", "AvailablePeriods": periodsAvailable,
@@ -475,7 +475,7 @@ func (h *DashboardHandler) FunnelDetail(w http.ResponseWriter, r *http.Request) 
 	if c, err := r.Cookie("csrf_token"); err == nil {
 		csrf = c.Value
 	}
-	h.renderDash(w, "funnel-detail.html", map[string]any{
+	h.renderDash(w, r, "funnel-detail.html", map[string]any{
 		"SiteID": slug, "SiteDomain": site.Domain,
 		"SiteBaseURL": "/sites/" + slug, "ActiveNav": "funnels",
 		"Period": period, "AvailablePeriods": periodsAvailable,
@@ -483,7 +483,8 @@ func (h *DashboardHandler) FunnelDetail(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-func (h *DashboardHandler) renderDash(w http.ResponseWriter, name string, data any) {
+func (h *DashboardHandler) renderDash(w http.ResponseWriter, r *http.Request, name string, data any) {
+	injectNonce(r, data)
 	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")
 		return

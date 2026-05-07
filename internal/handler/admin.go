@@ -49,7 +49,7 @@ func (h *AdminHandler) Index(w http.ResponseWriter, r *http.Request) {
 		data["SiteCount"], _ = h.repos.Admin.CountSites(r.Context())
 		data["EventsToday"], _ = h.repos.Admin.CountEventsToday(r.Context())
 	}
-	h.renderAdmin(w, "index.html", data)
+	h.renderAdmin(w, r, "index.html", data)
 }
 
 // Users renders GET /admin/users.
@@ -68,12 +68,12 @@ func (h *AdminHandler) Users(w http.ResponseWriter, r *http.Request) {
 			data["Users"] = users
 		}
 	}
-	h.renderAdmin(w, "users.html", data)
+	h.renderAdmin(w, r, "users.html", data)
 }
 
 // NewUserPage renders GET /admin/users/new.
 func (h *AdminHandler) NewUserPage(w http.ResponseWriter, r *http.Request) {
-	h.renderAdmin(w, "user-form.html", map[string]any{
+	h.renderAdmin(w, r, "user-form.html", map[string]any{
 		"ActiveNav": "users", "User": &model.User{}, "CSRFToken": csrfToken(r),
 	})
 }
@@ -93,7 +93,7 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if name == "" || email == "" || len(password) < 12 {
-		h.renderAdmin(w, "user-form.html", map[string]any{
+		h.renderAdmin(w, r, "user-form.html", map[string]any{
 			"ActiveNav": "users",
 			"User":      &model.User{Email: email, Name: name, Role: model.Role(role)},
 			"CSRFToken": csrfToken(r),
@@ -112,7 +112,7 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Role: model.Role(role), Name: name, IsActive: true,
 	}
 	if err := h.repos.Users.Create(r.Context(), user); err != nil {
-		h.renderAdmin(w, "user-form.html", map[string]any{
+		h.renderAdmin(w, r, "user-form.html", map[string]any{
 			"ActiveNav": "users", "User": user, "CSRFToken": csrfToken(r),
 			"Error": "Could not create user. Email may already exist.",
 		})
@@ -131,7 +131,7 @@ func (h *AdminHandler) EditUserPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	h.renderAdmin(w, "user-form.html", map[string]any{
+	h.renderAdmin(w, r, "user-form.html", map[string]any{
 		"ActiveNav": "users", "User": user, "CSRFToken": csrfToken(r),
 	})
 }
@@ -148,14 +148,14 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if target.Role == model.RoleAdmin {
-		h.renderAdmin(w, "user-form.html", map[string]any{
+		h.renderAdmin(w, r, "user-form.html", map[string]any{
 			"ActiveNav": "users", "User": target, "CSRFToken": csrfToken(r),
 			"Error": "Admin accounts cannot be deactivated. Remove the admin role first.",
 		})
 		return
 	}
 	if id == actorID {
-		h.renderAdmin(w, "user-form.html", map[string]any{
+		h.renderAdmin(w, r, "user-form.html", map[string]any{
 			"ActiveNav": "users", "User": target, "CSRFToken": csrfToken(r),
 			"Error": "You cannot deactivate your own account.",
 		})
@@ -225,12 +225,12 @@ func (h *AdminHandler) Sites(w http.ResponseWriter, r *http.Request) {
 			data["Sites"] = sites
 		}
 	}
-	h.renderAdmin(w, "sites.html", data)
+	h.renderAdmin(w, r, "sites.html", data)
 }
 
 // TrackerTest renders GET /admin/tracker-test.
 func (h *AdminHandler) TrackerTest(w http.ResponseWriter, r *http.Request) {
-	h.renderAdmin(w, "tracker-test.html", map[string]any{"ActiveNav": "tracker-test"})
+	h.renderAdmin(w, r, "tracker-test.html", map[string]any{"ActiveNav": "tracker-test"})
 }
 
 // AuditLog renders GET /admin/audit-log.
@@ -244,7 +244,7 @@ func (h *AdminHandler) AuditLog(w http.ResponseWriter, r *http.Request) {
 			data["Entries"] = entries
 		}
 	}
-	h.renderAdmin(w, "audit.html", data)
+	h.renderAdmin(w, r, "audit.html", data)
 }
 
 // auditLog writes an audit entry, logging any error rather than silently discarding it.
@@ -257,7 +257,8 @@ func auditLog(repos *repository.Repos, r *http.Request, actorID, action, resourc
 	}
 }
 
-func (h *AdminHandler) renderAdmin(w http.ResponseWriter, name string, data any) {
+func (h *AdminHandler) renderAdmin(w http.ResponseWriter, r *http.Request, name string, data any) {
+	injectNonce(r, data)
 	if h.tmpls == nil {
 		w.Header().Set("Content-Type", "text/html")
 		return
@@ -271,5 +272,13 @@ func (h *AdminHandler) renderAdmin(w http.ResponseWriter, name string, data any)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := t.ExecuteTemplate(w, "admin.html", data); err != nil {
 		slog.Error("render admin template", "name", name, "error", err)
+	}
+}
+
+// injectNonce adds the per-request CSP nonce into the template data map.
+// All render methods call this so templates can use {{.Nonce}} in <script nonce="..."> tags.
+func injectNonce(r *http.Request, data any) {
+	if m, ok := data.(map[string]any); ok {
+		m["Nonce"] = middleware.NonceFromContext(r.Context())
 	}
 }
