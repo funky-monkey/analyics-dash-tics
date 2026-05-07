@@ -205,6 +205,8 @@ func buildTemplateMap(basePath, pagesRoot string) (map[string]*template.Template
 			}
 			return val
 		},
+		"inc": func(i int) int { return i + 1 },
+		"dec": func(i int) int { return i - 1 },
 	}
 
 	partials, err := filepath.Glob("templates/partials/*.html")

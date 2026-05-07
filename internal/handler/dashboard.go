@@ -306,9 +306,44 @@ func (h *DashboardHandler) DeleteFunnel(w http.ResponseWriter, r *http.Request) 
 }
 
 // FunnelDetail renders GET /sites/:siteID/funnels/:funnelID.
-// Full implementation in Task 8.
 func (h *DashboardHandler) FunnelDetail(w http.ResponseWriter, r *http.Request) {
-	http.NotFound(w, r)
+	siteID := chi.URLParam(r, "siteID")
+	funnelID := chi.URLParam(r, "funnelID")
+	if h.repos == nil {
+		http.NotFound(w, r)
+		return
+	}
+	site, err := h.repos.Sites.GetByID(r.Context(), siteID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	funnel, steps, err := h.repos.Funnels.GetWithSteps(r.Context(), funnelID, siteID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	period := periodParam(r)
+	from, to := service.DateRange(period)
+
+	counts, err := h.repos.Funnels.GetDropOff(r.Context(), siteID, steps, from, to)
+	if err != nil {
+		slog.Error("dashboard.FunnelDetail", "error", err)
+		counts = make([]int64, len(steps))
+	}
+
+	result := service.BuildFunnelResult(funnel, steps, counts)
+
+	var csrf string
+	if c, err := r.Cookie("csrf_token"); err == nil {
+		csrf = c.Value
+	}
+	h.renderDash(w, "funnel-detail.html", map[string]any{
+		"SiteID": siteID, "SiteDomain": site.Domain,
+		"SiteBaseURL": "/sites/" + siteID, "ActiveNav": "funnels",
+		"Period": period, "AvailablePeriods": periodsAvailable,
+		"Result": result, "CSRFToken": csrf,
+	})
 }
 
 func (h *DashboardHandler) renderDash(w http.ResponseWriter, name string, data any) {

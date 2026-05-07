@@ -1,0 +1,45 @@
+{{template "dashboard.html" .}}
+{{define "title"}}{{.SiteDomain}} — {{.Result.FunnelName}}{{end}}
+{{define "content"}}
+<div class="flex items-center gap-3 mb-6">
+  <a href="/sites/{{.SiteID}}/funnels" class="text-xs text-gray-400 hover:text-gray-700">← Funnels</a>
+  <h2 class="text-lg font-semibold text-gray-900">{{.Result.FunnelName}}</h2>
+</div>
+
+{{if .Result.Steps}}
+<div class="bg-white rounded-xl border border-gray-100 p-6 max-w-3xl">
+  <div class="space-y-4">
+    {{range .Result.Steps}}
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-sm font-medium text-gray-700">
+          <span class="text-gray-400 text-xs mr-2">{{inc .Position}}</span>{{.Name}}
+        </span>
+        <div class="text-right">
+          <span class="text-sm font-semibold text-gray-900">{{formatNumber .Visitors}}</span>
+          <span class="text-xs text-gray-400 ml-1">({{printf "%.1f" .Converted}}%)</span>
+          {{if gt .Position 0}}
+          <span class="text-xs text-red-400 ml-2">−{{printf "%.1f" .DropOff}}% drop</span>
+          {{end}}
+        </div>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-5 overflow-hidden">
+        <div class="h-5 rounded-full bg-violet-500 transition-all"
+             style="width: {{printf "%.1f" .Converted}}%"></div>
+      </div>
+    </div>
+    {{end}}
+  </div>
+
+  {{$last := index .Result.Steps (dec (len .Result.Steps))}}
+  <div class="mt-6 pt-4 border-t border-gray-100 flex justify-between text-sm">
+    <span class="text-gray-500">Overall conversion</span>
+    <span class="font-semibold text-gray-900">{{printf "%.1f" $last.Converted}}%</span>
+  </div>
+</div>
+{{else}}
+<div class="bg-white rounded-xl border border-gray-100 p-12 text-center">
+  <p class="text-gray-400 text-sm">No data yet for this funnel in the selected period.</p>
+</div>
+{{end}}
+{{end}}
