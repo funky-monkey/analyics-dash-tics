@@ -1,5 +1,5 @@
 # Makefile
-.PHONY: dev seed test lint build tidy tailwind
+.PHONY: dev seed stop restart test lint build tidy tailwind
 
 # Load .env if it exists
 ifneq (,$(wildcard .env))
@@ -9,6 +9,11 @@ endif
 
 dev:
 	go run ./cmd/server
+
+stop:
+	@lsof -ti :$(PORT) | xargs kill -9 2>/dev/null && echo "stopped" || echo "nothing running on :$(PORT)"
+
+restart: stop dev
 
 seed:
 	go run ./cmd/seed
